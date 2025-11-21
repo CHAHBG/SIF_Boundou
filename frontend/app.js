@@ -19,8 +19,8 @@ const app = {
                 "osm": {
                     "type": "raster",
                     "tiles": ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                              "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                              "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],
+                        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],
                     "tileSize": 256,
                     "attribution": "&copy; OpenStreetMap Contributors",
                     "maxzoom": 19
@@ -253,7 +253,7 @@ const app = {
             const visibleTypes = [];
             if (this.visibleLayers.individual) visibleTypes.push('individual');
             if (this.visibleLayers.collective) visibleTypes.push('collective');
-            
+
             if (visibleTypes.length === 0) {
                 filter = ['==', 'type', 'none']; // Hide all
             } else if (visibleTypes.length === 2) {
@@ -271,7 +271,7 @@ const app = {
                 visibleStatuses.push('approuvee');
                 visibleStatuses.push('Approved'); // Handle both variants
             }
-            
+
             if (visibleStatuses.length === 0) {
                 filter = ['==', 'status', 'none']; // Hide all
             } else if (visibleStatuses.length >= 5) {
@@ -400,13 +400,13 @@ const app = {
 
     setupInteractions() {
         let hoverTimeout = null;
-        
+
         // Throttle cursor changes to reduce repaints
         this.map.on('mouseenter', 'parcels-3d', () => {
             clearTimeout(hoverTimeout);
             this.map.getCanvas().style.cursor = 'pointer';
         });
-        
+
         this.map.on('mouseleave', 'parcels-3d', () => {
             hoverTimeout = setTimeout(() => {
                 this.map.getCanvas().style.cursor = '';
@@ -417,7 +417,7 @@ const app = {
         let clickTimeout = null;
         this.map.on('click', 'parcels-3d', (e) => {
             if (clickTimeout) return; // Ignore rapid clicks
-            
+
             if (e.features.length > 0) {
                 const feature = e.features[0];
                 const id = feature.properties.id;
@@ -429,9 +429,6 @@ const app = {
                 requestAnimationFrame(() => {
                     this.map.setFilter('parcels-highlight', ['==', 'id', id]);
                 });
-
-                // Store click coordinates for modal positioning
-                this.lastClickPoint = e.point;
 
                 // Fetch full details
                 this.fetchAndShowDetails(id);
@@ -542,11 +539,11 @@ const app = {
                     // Add timeout
                     signal: AbortSignal.timeout(10000) // 10 second timeout
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 return await response.json();
             } catch (err) {
                 if (i === retries - 1) throw err;
@@ -557,17 +554,17 @@ const app = {
     },
 
     fetchAndShowDetails(id) {
-        // INSTANT MODAL: Show modal immediately with loading skeleton
-        this.openModalWithLoading(id);
-        
+        // INSTANT PANEL: Show panel immediately with loading skeleton
+        this.openPanelWithLoading(id);
+
         // Backend API URL from config
         const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
-        
+
         // Fetch data in background and populate when ready
         this.fetchWithRetry(`${BACKEND_URL}/api/parcels/${id}`)
             .then(feature => {
                 if (feature.error) {
-                    this.closeModal();
+                    this.closePanel();
                     alert('Erreur: ' + feature.error);
                     return;
                 }
@@ -584,26 +581,26 @@ const app = {
                     });
                 }
 
-                // Populate modal with actual data
-                this.populateModal(feature);
+                // Populate panel with actual data
+                this.populatePanel(feature);
             })
             .catch(err => {
                 console.error('Error fetching details:', err);
-                this.closeModal();
+                this.closePanel();
                 alert('Impossible de charger les détails. Vérifiez votre connexion Internet et réessayez.\n\nErreur: ' + err.message);
             });
     },
 
-    openModalWithLoading(id) {
-        // Show modal instantly with loading skeleton
-        const modal = document.getElementById('detailModal');
-        
+    openPanelWithLoading(id) {
+        // Show panel instantly with loading skeleton
+        const panel = document.getElementById('detailPanel');
+
         // Set basic info
-        document.getElementById('modalTitle').innerText = `Parcelle #${id}`;
-        
-        // Show loading skeleton in both columns
-        const leftCol = document.querySelector('#detailModal .grid > div:first-child');
-        leftCol.innerHTML = `
+        document.getElementById('panelTitle').innerText = `Parcelle #${id}`;
+
+        // Show loading skeleton in content area
+        const contentArea = document.getElementById('panelContentLeft');
+        contentArea.innerHTML = `
             <div class="animate-pulse space-y-4">
                 <div class="h-6 bg-slate-200 rounded w-3/4"></div>
                 <div class="h-32 bg-slate-200 rounded"></div>
@@ -611,83 +608,58 @@ const app = {
                 <div class="h-24 bg-slate-200 rounded"></div>
             </div>
         `;
-        
+
         // Loading placeholders for images
-        document.getElementById('modalPhotoRecto').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='16'%3EChargement...%3C/text%3E%3C/svg%3E";
-        document.getElementById('modalPhotoVerso').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='16'%3EChargement...%3C/text%3E%3C/svg%3E";
-        
+        document.getElementById('panelPhotoRecto').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='16'%3EChargement...%3C/text%3E%3C/svg%3E";
+        document.getElementById('panelPhotoVerso').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='16'%3EChargement...%3C/text%3E%3C/svg%3E";
+
         // Hide conflict alert initially
         document.getElementById('conflictAlert').classList.add('hidden');
-        
-        // Position and show modal immediately
-        if (this.lastClickPoint) {
-            const x = this.lastClickPoint.x;
-            const y = this.lastClickPoint.y;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            const modalWidth = 700;
-            const maxModalHeight = windowHeight - 40;
 
-            let left = Math.min(x + 20, windowWidth - modalWidth - 20);
-            let top = Math.max(20, Math.min(y - 100, windowHeight - maxModalHeight - 20));
-
-            if (left < 420) {
-                left = Math.max(420, x - modalWidth - 20);
-                if (left < 420) left = 420;
-            }
-
-            if (top + maxModalHeight > windowHeight - 20) {
-                top = windowHeight - maxModalHeight - 20;
-            }
-            if (top < 20) {
-                top = 20;
-            }
-
-            modal.style.left = `${left}px`;
-            modal.style.top = `${top}px`;
-            modal.style.transform = 'none';
-        } else {
-            modal.style.left = '50%';
-            modal.style.top = '50%';
-            modal.style.transform = 'translate(-50%, -50%)';
-        }
-
-        modal.classList.remove('hidden');
+        // Slide in panel
+        panel.classList.remove('translate-x-full');
     },
 
-    populateModal(feature) {
-        // Populate modal with actual data (already open and positioned)
-        requestAnimationFrame(() => {
-        const p = feature.properties;
-        document.getElementById('modalTitle').innerText = p.num_parcel || p.id;
+    closePanel() {
+        const panel = document.getElementById('detailPanel');
+        if (panel) {
+            panel.classList.add('translate-x-full');
+        }
+    },
 
-        // Status Badge
-        const statusColor = this.colors[p.status] || this.colors['unknown'];
-        const statusBadge = document.getElementById('modalStatus');
-        statusBadge.innerText = p.status || 'Inconnu';
-        statusBadge.style.backgroundColor = statusColor + '20';
-        statusBadge.style.color = statusColor;
-        // Workflow Visualizer
-        const step2 = document.getElementById('step2');
-        const step3 = document.getElementById('step3');
-        step2.className = "w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
-        step3.className = "w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
-        step2.innerHTML = '<span class="text-xs font-bold">2</span>';
-        step3.innerHTML = '<span class="text-xs font-bold">3</span>';
-        if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
-            step2.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
-            step2.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
-        }
-        if (p.status === 'approuvee' || p.status === 'Approved') {
-            step3.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
-            step3.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
-        }
-        lucide.createIcons();
-        // Individual vs Collective
-        const leftCol = document.querySelector('#detailModal .grid > div:first-child');
-        leftCol.innerHTML = '';
-        if (p.type === 'individual') {
-            leftCol.innerHTML = `
+    populatePanel(feature) {
+        // Populate panel with actual data
+        requestAnimationFrame(() => {
+            const p = feature.properties;
+            document.getElementById('panelTitle').innerText = p.num_parcel || p.id;
+
+            // Status Badge
+            const statusColor = this.colors[p.status] || this.colors['unknown'];
+            const statusBadge = document.getElementById('panelStatus');
+            statusBadge.innerText = p.status || 'Inconnu';
+            statusBadge.style.backgroundColor = statusColor + '20';
+            statusBadge.style.color = statusColor;
+            // Workflow Visualizer
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            step2.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
+            step3.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
+            step2.innerHTML = '<span class="text-xs font-bold">2</span>';
+            step3.innerHTML = '<span class="text-xs font-bold">3</span>';
+            if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
+                step2.className = "w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
+                step2.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+            }
+            if (p.status === 'approuvee' || p.status === 'Approved') {
+                step3.className = "w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
+                step3.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+            }
+            lucide.createIcons();
+            // Individual vs Collective
+            const contentArea = document.getElementById('panelContentLeft');
+            contentArea.innerHTML = '';
+            if (p.type === 'individual') {
+                contentArea.innerHTML = `
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                     <i data-lucide="user" class="w-4 h-4"></i> Propriétaire / Occupant
                 </h3>
@@ -717,8 +689,8 @@ const app = {
                     <div><span class="text-slate-400 text-xs block">Lieu Naissance</span> ${p.lieu_naiss || '--'}</div>
                 </div>
             `;
-        } else if (p.type === 'collective') {
-            const mandatariesHtml = (p.mandataries || []).map(m => `
+            } else if (p.type === 'collective') {
+                const mandatariesHtml = (p.mandataries || []).map(m => `
                 <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
                     <div class='flex justify-between items-start mb-2'>
                         <span class='font-semibold text-slate-700'>${m.prenom || ''} ${m.nom || ''}</span>
@@ -734,7 +706,7 @@ const app = {
                 </div>
             `).join('');
 
-            const beneficiariesHtml = (p.beneficiaries || []).map((b, idx) => `
+                const beneficiariesHtml = (p.beneficiaries || []).map((b, idx) => `
                 <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
                     <div class='flex justify-between items-start mb-1'>
                         <span class='font-semibold text-slate-700'>${idx + 1}. ${b.prenom || ''} ${b.nom || ''}</span>
@@ -754,7 +726,7 @@ const app = {
                 </div>
             `).join('');
 
-            leftCol.innerHTML = `
+                contentArea.innerHTML = `
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                     <i data-lucide="users" class="w-4 h-4"></i> Groupement / Collectif
                 </h3>
@@ -787,34 +759,30 @@ const app = {
                     ${beneficiariesHtml || '<p class="text-sm text-slate-400 italic">Aucun bénéficiaire</p>'}
                 </div>
             `;
-        }
-        // Images - for collective parcels, show mandataire photos
-        if (p.type === 'collective' && p.mandataries && p.mandataries.length > 0) {
-            document.getElementById('modalPhotoRecto').src = p.mandataries[0].photo_rec_url || "https://placehold.co/600x400?text=Non+Disponible";
-            document.getElementById('modalPhotoVerso').src = p.mandataries[0].photo_ver_url || "https://placehold.co/600x400?text=Non+Disponible";
-        } else {
-            document.getElementById('modalPhotoRecto').src = p.photo_rec_url || "https://placehold.co/600x400?text=Non+Disponible";
-            document.getElementById('modalPhotoVerso').src = p.photo_ver_url || "https://placehold.co/600x400?text=Non+Disponible";
-        }
-        // Conflict
-        const alertBox = document.getElementById('conflictAlert');
-        if (p.conflict) {
-            alertBox.classList.remove('hidden');
-            document.getElementById('modalConflictText').innerText = p.conflict_reason || "Conflit signalé";
-        } else {
-            alertBox.classList.add('hidden');
-        }
+            }
+            // Images - for collective parcels, show mandataire photos
+            if (p.type === 'collective' && p.mandataries && p.mandataries.length > 0) {
+                document.getElementById('panelPhotoRecto').src = p.mandataries[0].photo_rec_url || "https://placehold.co/600x400?text=Non+Disponible";
+                document.getElementById('panelPhotoVerso').src = p.mandataries[0].photo_ver_url || "https://placehold.co/600x400?text=Non+Disponible";
+            } else {
+                document.getElementById('panelPhotoRecto').src = p.photo_rec_url || "https://placehold.co/600x400?text=Non+Disponible";
+                document.getElementById('panelPhotoVerso').src = p.photo_ver_url || "https://placehold.co/600x400?text=Non+Disponible";
+            }
+            // Conflict
+            const alertBox = document.getElementById('conflictAlert');
+            if (p.conflict) {
+                alertBox.classList.remove('hidden');
+                document.getElementById('panelConflictText').innerText = p.conflict_reason || "Conflit signalé";
+            } else {
+                alertBox.classList.add('hidden');
+            }
 
-        // Modal already visible and positioned, just update icons
-        lucide.createIcons();
+            // Panel already visible and positioned, just update icons
+            lucide.createIcons();
         }); // End requestAnimationFrame
     },
 
-    closeModal() {
-        const modal = document.getElementById('detailModal');
-        modal.classList.add('hidden');
-        modal.style.transform = '';
-    },
+
 
     exportData() {
         alert("L'export complet n'est pas disponible en mode 3D (Performance). Veuillez contacter l'administrateur pour un export base de données.");

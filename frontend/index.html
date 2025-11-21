@@ -78,8 +78,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
@@ -229,188 +234,9 @@
                         <li>• <strong>Molette</strong> : Zoom</li>
                     </ul>
                 </div>
-                <button onclick="document.getElementById('rotationTip').classList.add('hidden')" 
+                <button onclick="document.getElementById('rotationTip').classList.add('hidden')"
                     class="text-white/70 hover:text-white">
                     <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-        </div>
-    </main>
-
-    <!-- DETAIL MODAL (Hidden by default) - Positioned contextually -->
-    <div id="detailModal"
-        class="fixed z-50 hidden transition-all duration-300 inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div
-            class="bg-white rounded-2xl shadow-2xl w-[800px] max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 animate-in fade-in zoom-in duration-300">
-            <!-- Modal Header with Gradient -->
-            <div class="p-5 bg-navy flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-                        <i data-lucide="map-pin" class="w-6 h-6 text-gold"></i>
-                    </div>
-                    <div>
-                        <h2 id="modalTitle" class="text-xl font-bold text-white">PARCEL-ID</h2>
-                        <span id="modalStatus"
-                            class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-medium text-white shadow-sm">Status</span>
-                    </div>
-                </div>
-                <button onclick="app.closeModal()"
-                    class="p-2 hover:bg-white/10 rounded-full transition-colors text-white">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
-            </div>
-
-            <!-- Modal Body -->
-            <div class="p-6 overflow-y-auto bg-slate-50 custom-scroll">
-
-                <!-- Status Workflow Bar -->
-                <div
-                    class="flex items-center justify-between mb-8 relative bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-                    <div class="absolute left-10 right-10 top-1/2 h-1 bg-slate-100 -z-10"></div>
-                    <div
-                        class="absolute left-10 right-10 top-1/2 h-1 bg-gradient-to-r from-gold via-blue-medium to-green-marker -z-10 opacity-30">
-                    </div>
-
-                    <!-- Step 1 -->
-                    <div class="flex flex-col items-center z-10 group">
-                        <div id="step1"
-                            class="w-12 h-12 rounded-full bg-white border-4 border-slate-200 text-slate-400 flex items-center justify-center mb-2 shadow-sm transition-all group-hover:scale-110">
-                            <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Enquête</span>
-                    </div>
-
-                    <!-- Step 2 -->
-                    <div class="flex flex-col items-center z-10 group">
-                        <div id="step2"
-                            class="w-12 h-12 rounded-full bg-white border-4 border-slate-200 text-slate-400 flex items-center justify-center mb-2 shadow-sm transition-all group-hover:scale-110">
-                            <i data-lucide="file-check" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">NICAD</span>
-                    </div>
-
-                    <!-- Step 3 -->
-                    <div class="flex flex-col items-center z-10 group">
-                        <div id="step3"
-                            class="w-12 h-12 rounded-full bg-white border-4 border-slate-200 text-slate-400 flex items-center justify-center mb-2 shadow-sm transition-all group-hover:scale-110">
-                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Approbation</span>
-                    </div>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-6">
-                    <!-- Left Col: Info -->
-                    <div class="space-y-4">
-                        <div class="flex items-center gap-2 text-xs font-bold text-navy uppercase tracking-wider">
-                            <i data-lucide="user" class="w-4 h-4"></i> Propriétaire / Occupant
-                        </div>
-                        <div
-                            class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                            <p class="text-lg font-bold text-navy mb-4" id="modalOwnerName">Chargement...</p>
-                            <div class="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span
-                                        class="block text-slate-400 text-[10px] uppercase font-bold mb-1">Téléphone</span>
-                                    <span class="font-medium text-slate-700" id="modalPhone">--</span>
-                                </div>
-                                <div>
-                                    <span
-                                        class="block text-slate-400 text-[10px] uppercase font-bold mb-1">Village</span>
-                                    <span class="font-medium text-slate-700" id="modalVillage">--</span>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px] uppercase font-bold mb-1">Type</span>
-                                    <span class="font-medium text-slate-700" id="modalType">--</span>
-                                </div>
-                                <div>
-                                    <span
-                                        class="block text-slate-400 text-[10px] uppercase font-bold mb-1">Vocation</span>
-                                    <span class="font-medium text-slate-700" id="modalVocation">--</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2 text-xs font-bold text-navy uppercase tracking-wider mt-6">
-                            <i data-lucide="database" class="w-4 h-4"></i> Données Techniques
-                        </div>
-                        <div
-                            class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3 hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-center text-sm border-b border-slate-50 pb-2">
-                                <span class="text-slate-500 font-medium">NICAD</span>
-                                <span class="font-mono font-bold text-blue-medium bg-blue-50 px-2 py-1 rounded"
-                                    id="modalNicad">--</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm border-b border-slate-50 pb-2">
-                                <span class="text-slate-500 font-medium">N° Délibération</span>
-                                <span class="font-semibold text-slate-700" id="modalDelib">--</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-slate-500 font-medium">Surface</span>
-                                <span class="font-semibold text-slate-700" id="modalSurface">-- m²</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Col: Photos & Map Preview -->
-                    <div>
-                        <div class="flex items-center gap-2 text-xs font-bold text-navy uppercase tracking-wider mb-4">
-                            <i data-lucide="image" class="w-4 h-4"></i> Pièces Justificatives
-                        </div>
-                        <div class="grid gap-4">
-                            <div
-                                class="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 aspect-video shadow-sm hover:shadow-md transition-all cursor-pointer">
-                                <img id="modalPhotoRecto" src="" alt="CNI Recto"
-                                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors">
-                                </div>
-                                <div
-                                    class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white text-xs p-3 font-semibold">
-                                    CNI Recto</div>
-                            </div>
-                            <div
-                                class="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 aspect-video shadow-sm hover:shadow-md transition-all cursor-pointer">
-                                <img id="modalPhotoVerso" src="" alt="CNI Verso"
-                                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors">
-                                </div>
-                                <div
-                                    class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white text-xs p-3 font-semibold">
-                                    CNI Verso / Photo Terrain</div>
-                            </div>
-                        </div>
-
-                        <div id="conflictAlert"
-                            class="hidden mt-6 bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3 shadow-sm">
-                            <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 mt-0.5"></i>
-                            <div>
-                                <p class="text-sm font-bold text-red-700">⚠ Conflit Signalé</p>
-                                <p class="text-xs text-red-600 mt-1" id="modalConflictText">Details...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
-                <button onclick="app.closeModal()"
-                    class="px-5 py-2.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-white rounded-lg font-semibold transition-all border border-transparent hover:border-slate-200">
-                    Fermer
-                </button>
-                <button onclick="alert('Génération du certificat PDF en cours...')"
-                    class="px-5 py-2.5 text-sm bg-blue-medium hover:bg-blue-light text-white rounded-lg font-semibold shadow-md hover:shadow-lg flex items-center gap-2 transition-all transform active:scale-95">
-                    <i data-lucide="printer" class="w-4 h-4"></i> Imprimer Fiche
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Configuration -->
-    <script src="config.js"></script>
-    <!-- Main Application -->
-    <script src="app.js"></script>
 </body>
 
 </html>
