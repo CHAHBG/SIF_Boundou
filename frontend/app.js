@@ -208,20 +208,6 @@ const app = {
     addSourcesAndLayers() {
         // Safety check: if source already exists, do nothing
         if (this.map.getSource('parcels-source')) return;
-
-        // Add Vector Tile Source from our Backend
-        this.map.addSource('parcels-source', {
-            type: 'vector',
-            tiles: [
-                window.location.hostname === 'localhost'
-                    ? 'http://localhost:4000/api/tiles/{z}/{x}/{y}'
-                    : '/api/tiles/{z}/{x}/{y}'
-            ],
-            minzoom: 10,
-            maxzoom: 22
-        });
-
-        // 1. Fill Extrusion Layer (3D Buildings)
         this.map.addLayer({
             'id': 'parcels-3d',
             'type': 'fill-extrusion',
