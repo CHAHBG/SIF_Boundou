@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "SIF Boundou Geoportal - Land Registry System",
   "scripts": {
-    "start": "cd backend && npm start",
+    "start": "cd backend && npm install && npm start",
     "install-backend": "cd backend && npm install",
     "install-all": "npm install && npm run install-backend"
   },
