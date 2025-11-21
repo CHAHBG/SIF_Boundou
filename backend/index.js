@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const compression = require('compression');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -17,21 +18,31 @@ const corsOptions = {
     'http://127.0.0.1:5500'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  maxAge: 86400 // 24 hours
 };
 
 // Middleware
 app.use(cors(corsOptions));
+app.use(compression()); // Enable gzip compression
 app.use(express.json());
 
-// PostgreSQL connection pool
+// PostgreSQL connection pool with optimized settings
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/geoportail',
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  // Connection pool optimization
+  max: 20, // Maximum pool size
+  min: 2, // Minimum pool size
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Connection timeout: 10 seconds
+  // Performance tuning
+  statement_timeout: 30000, // Query timeout: 30 seconds
+  query_timeout: 30000
 });
 
 // Test database connection
@@ -56,10 +67,13 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
 
   try {
     // Add cache headers for faster tile loading
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400'); // Cache for 1 hour, serve stale for 24h
     res.setHeader('Content-Type', 'application/x-protobuf');
+    res.setHeader('Access-Control-Max-Age', '86400'); // CORS preflight cache
 
-    // Calculate tile envelope in EPSG:3857 (Web Mercator)
+    // Optimized query with spatial indexing and simplification at lower zoom levels
+    const simplification = z < 14 ? 10 : z < 16 ? 5 : 0; // Simplify geometries at lower zoom
+    
     const query = `
       WITH bounds AS (
         SELECT ST_TileEnvelope($1::integer, $2::integer, $3::integer) AS geom
@@ -75,12 +89,22 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
             WHEN c.num_parcel IS NOT NULL THEN 'collective'
             ELSE 'unknown'
           END AS type,
-          ST_AsMVTGeom(ST_Transform(p.geometry, 3857), bounds.geom) AS geom
+          ST_AsMVTGeom(
+            ${simplification > 0 
+              ? `ST_Simplify(ST_Transform(p.geometry, 3857), ${simplification})`
+              : 'ST_Transform(p.geometry, 3857)'
+            },
+            bounds.geom,
+            4096,
+            64,
+            true
+          ) AS geom
         FROM parcels p
         LEFT JOIN individual_surveys i ON p.num_parcel = i.num_parcel
         LEFT JOIN collective_surveys c ON p.num_parcel = c.num_parcel
         CROSS JOIN bounds
         WHERE ST_Intersects(ST_Transform(p.geometry, 3857), bounds.geom)
+          AND ST_Transform(p.geometry, 3857) && bounds.geom
       )
       SELECT ST_AsMVT(mvtgeom.*, 'parcels', 4096, 'geom') AS mvt FROM mvtgeom;
     `;

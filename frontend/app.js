@@ -124,6 +124,17 @@ const app = {
             }
         });
 
+        // Handle tile loading errors with retry
+        this.map.on('error', (e) => {
+            if (e.error && e.error.message) {
+                console.warn('Map error:', e.error.message);
+                // Don't show alert for tile errors, they will retry automatically
+                if (!e.error.message.includes('tile')) {
+                    console.error('Map error:', e.error);
+                }
+            }
+        });
+
         // Re-add layers when style changes
         this.map.on('styledata', () => {
             // Check if source exists to prevent "Source already exists" error
@@ -332,8 +343,14 @@ const app = {
             // Optimize tile loading for faster initial display
             minzoom: 10,
             maxzoom: 22,
-            // Enable tile caching
-            scheme: 'xyz'
+            // Enable tile caching and optimize performance
+            scheme: 'xyz',
+            // Reduce tile requests by allowing some overfetch
+            tileSize: 512,
+            // Increase buffer for smoother panning
+            buffer: 64,
+            // Increase tolerance to reduce features at lower zooms
+            tolerance: 3.5
         });
 
         this.map.addLayer({
@@ -382,22 +399,36 @@ const app = {
     },
 
     setupInteractions() {
-        // Change cursor on hover
+        let hoverTimeout = null;
+        
+        // Throttle cursor changes to reduce repaints
         this.map.on('mouseenter', 'parcels-3d', () => {
+            clearTimeout(hoverTimeout);
             this.map.getCanvas().style.cursor = 'pointer';
         });
+        
         this.map.on('mouseleave', 'parcels-3d', () => {
-            this.map.getCanvas().style.cursor = '';
+            hoverTimeout = setTimeout(() => {
+                this.map.getCanvas().style.cursor = '';
+            }, 50);
         });
 
-        // Click to open details
+        // Optimize click handler with debouncing to prevent double-clicks
+        let clickTimeout = null;
         this.map.on('click', 'parcels-3d', (e) => {
+            if (clickTimeout) return; // Ignore rapid clicks
+            
             if (e.features.length > 0) {
                 const feature = e.features[0];
-                const id = feature.properties.id; // Assuming 'id' is in properties
+                const id = feature.properties.id;
 
-                // Highlight the feature
-                this.map.setFilter('parcels-highlight', ['==', 'id', id]);
+                // Prevent multiple rapid clicks
+                clickTimeout = setTimeout(() => { clickTimeout = null; }, 500);
+
+                // Highlight the feature with requestAnimationFrame
+                requestAnimationFrame(() => {
+                    this.map.setFilter('parcels-highlight', ['==', 'id', id]);
+                });
 
                 // Store click coordinates for modal positioning
                 this.lastClickPoint = e.point;
@@ -411,24 +442,56 @@ const app = {
     setupSearch() {
         const searchInput = document.getElementById('searchInput');
         let debounceTimer;
+        let currentSearchRequest = null;
 
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
-            const query = e.target.value;
+            const query = e.target.value.trim();
 
             if (query.length < 2) {
                 this.renderSidebar([]);
+                // Cancel ongoing request
+                if (currentSearchRequest) {
+                    currentSearchRequest.abort();
+                    currentSearchRequest = null;
+                }
                 return;
             }
 
             debounceTimer = setTimeout(() => {
+                // Cancel previous request if still running
+                if (currentSearchRequest) {
+                    currentSearchRequest.abort();
+                }
+
                 // Backend API URL from config
                 const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
-                fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => this.renderSidebar(data))
-                    .catch(err => console.error('Search error:', err));
-            }, 300);
+                const controller = new AbortController();
+                currentSearchRequest = controller;
+
+                fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query)}`, {
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.json();
+                    })
+                    .then(data => {
+                        this.renderSidebar(data);
+                        currentSearchRequest = null;
+                    })
+                    .catch(err => {
+                        if (err.name !== 'AbortError') {
+                            console.error('Search error:', err);
+                            this.renderSidebar([]);
+                            const list = document.getElementById('parcelList');
+                            list.innerHTML = '<div class="text-center p-8 text-red-500"><i data-lucide="wifi-off" class="w-12 h-12 mx-auto mb-3 opacity-50"></i><p class="text-sm">Erreur de connexion. Vérifiez votre réseau.</p></div>';
+                            lucide.createIcons();
+                        }
+                        currentSearchRequest = null;
+                    });
+            }, 400); // Increased to 400ms for better performance
         });
     },
 
@@ -468,38 +531,66 @@ const app = {
         lucide.createIcons();
     },
 
+    async fetchWithRetry(url, retries = 3, delay = 1000) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    // Add timeout
+                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (err) {
+                if (i === retries - 1) throw err;
+                console.warn(`Fetch attempt ${i + 1} failed, retrying...`, err);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    },
+
     fetchAndShowDetails(id) {
+        // Show loading state
+        const modal = document.getElementById('detailModal');
+        const loadingHTML = '<div class="p-8 text-center"><div class="spinner mx-auto mb-4"></div><p class="text-slate-600">Chargement des détails...</p></div>';
+        
         // Backend API URL from config
         const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
-        fetch(`${BACKEND_URL}/api/parcels/${id}`)
-            .then(res => res.json())
+        
+        this.fetchWithRetry(`${BACKEND_URL}/api/parcels/${id}`)
             .then(feature => {
                 if (feature.error) {
                     alert('Erreur: ' + feature.error);
                     return;
                 }
 
-                // Fly to location
+                // Fly to location with optimized animation
                 if (feature.geometry) {
-                    // Calculate bounds or center
-                    // Since we have geometry in the detail response (GeoJSON), we can use it
-                    // But MapLibre needs LngLatBounds or center.
-                    // We can use a simple helper to get centroid or bounds from GeoJSON geometry
-
-                    // Simple centroid approximation if available in properties (backend sends it)
                     if (feature.properties.centroid) {
                         const coords = feature.properties.centroid.coordinates;
                         this.map.flyTo({
                             center: coords,
                             zoom: 19,
-                            pitch: 60
+                            pitch: 60,
+                            duration: 1200,
+                            essential: true
                         });
                     }
                 }
 
                 this.openModal(feature);
             })
-            .catch(err => console.error('Error fetching details:', err));
+            .catch(err => {
+                console.error('Error fetching details:', err);
+                alert('Impossible de charger les détails. Vérifiez votre connexion Internet et réessayez.\n\nErreur: ' + err.message);
+            });
     },
 
     openModal(feature) {
