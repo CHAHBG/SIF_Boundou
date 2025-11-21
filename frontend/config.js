@@ -3,7 +3,7 @@ const config = {
     // Backend API URL - Update this after deploying backend to Render
     BACKEND_URL: window.location.hostname === 'localhost'
         ? 'http://localhost:4000'
-        : 'https://sif-boundou-api.onrender.com', // ⚠️ UPDATE THIS WITH YOUR RENDER URL
+        : 'https://sif-boundou.onrender.com',
 
     // Map settings
     MAP_CENTER: [-13.669070, 13.732617],
