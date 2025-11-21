@@ -21,6 +21,9 @@
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Turf.js for spatial operations -->
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
     <style>
         body {
@@ -183,6 +186,14 @@
                 <button onclick="app.resetBearing()" class="p-2 hover:bg-slate-100 transition-colors"
                     title="Réinitialiser la rotation (Ctrl+Glisser pour tourner la carte)">
                     <i data-lucide="compass" class="w-5 h-5 text-navy"></i>
+                </button>
+            </div>
+
+            <!-- Topology Checker -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                <button onclick="app.openTopologyChecker()" class="p-2 hover:bg-slate-100 transition-colors"
+                    title="Vérifier la topologie et corriger les erreurs">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-orange-600"></i>
                 </button>
             </div>
         </div>
@@ -373,6 +384,69 @@
                 <button onclick="alert('Génération du certificat PDF en cours...')"
                     class="px-5 py-2.5 text-sm bg-blue-medium hover:bg-blue-light text-white rounded-lg font-semibold shadow-md hover:shadow-lg flex items-center gap-2 transition-all transform active:scale-95">
                     <i data-lucide="printer" class="w-4 h-4"></i> Imprimer Fiche
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOPOLOGY CHECKER MODAL -->
+    <div id="topologyModal" class="fixed inset-0 z-[100] hidden bg-black/50 backdrop-blur-sm">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="p-5 bg-gradient-to-r from-orange-600 to-red-600 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                        <i data-lucide="alert-triangle" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Vérification Topologique</h2>
+                        <p class="text-sm text-white/80">Détection et correction des erreurs de géométrie</p>
+                    </div>
+                </div>
+                <button onclick="app.closeTopologyChecker()" class="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-6 h-6 text-white"></i>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-200 bg-slate-50">
+                <button onclick="app.switchTopologyTab('overlaps')" 
+                    class="topology-tab flex-1 px-4 py-3 text-sm font-semibold text-slate-600 hover:text-orange-600 hover:bg-white transition-colors border-b-2 border-transparent data-[active=true]:border-orange-600 data-[active=true]:text-orange-600 data-[active=true]:bg-white"
+                    data-active="true">
+                    <i data-lucide="layers" class="w-4 h-4 inline mr-2"></i>
+                    Chevauchements (<span id="overlapCount">0</span>)
+                </button>
+                <button onclick="app.switchTopologyTab('invalid')" 
+                    class="topology-tab flex-1 px-4 py-3 text-sm font-semibold text-slate-600 hover:text-orange-600 hover:bg-white transition-colors border-b-2 border-transparent data-[active=true]:border-orange-600 data-[active=true]:text-orange-600 data-[active=true]:bg-white">
+                    <i data-lucide="x-circle" class="w-4 h-4 inline mr-2"></i>
+                    Géométries Invalides (<span id="invalidCount">0</span>)
+                </button>
+                <button onclick="app.switchTopologyTab('gaps')" 
+                    class="topology-tab flex-1 px-4 py-3 text-sm font-semibold text-slate-600 hover:text-orange-600 hover:bg-white transition-colors border-b-2 border-transparent data-[active=true]:border-orange-600 data-[active=true]:text-orange-600 data-[active=true]:bg-white">
+                    <i data-lucide="square-dashed" class="w-4 h-4 inline mr-2"></i>
+                    Trous/Espaces (<span id="gapCount">0</span>)
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-5 custom-scroll">
+                <div id="topologyContent" class="space-y-3">
+                    <div class="text-center py-12 text-slate-400">
+                        <i data-lucide="loader" class="w-12 h-12 mx-auto mb-3 animate-spin"></i>
+                        <p>Chargement des erreurs topologiques...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                <div class="text-sm text-slate-600">
+                    <i data-lucide="info" class="w-4 h-4 inline"></i>
+                    Cliquez sur une erreur pour zoomer et corriger
+                </div>
+                <button onclick="app.closeTopologyChecker()" 
+                    class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-semibold transition-colors">
+                    Fermer
                 </button>
             </div>
         </div>
