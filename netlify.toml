@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --prefix backend && npm run build --prefix frontend" # Adjust if you have a build step
+  command = "npm install --prefix backend" 
   publish = "frontend"
 
 [functions]
