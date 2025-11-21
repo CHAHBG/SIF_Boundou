@@ -7,8 +7,23 @@ const { Pool } = require('pg');
 const app = express();
 const port = process.env.PORT || 4000;
 
+// CORS Configuration - Allow Netlify frontend and localhost
+const corsOptions = {
+  origin: [
+    'https://sifboundou.netlify.app',
+    'http://localhost:8888',
+    'http://localhost:5500',
+    'http://127.0.0.1:8888',
+    'http://127.0.0.1:5500'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // PostgreSQL connection pool
