@@ -209,13 +209,14 @@ const app = {
         // Safety check: if source already exists, do nothing
         if (this.map.getSource('parcels-source')) return;
 
+        // Backend API URL from config
+        const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
+
         // Add Vector Tile Source from our Backend
         this.map.addSource('parcels-source', {
             type: 'vector',
             tiles: [
-                window.location.hostname === 'localhost'
-                    ? 'http://localhost:4000/api/tiles/{z}/{x}/{y}'
-                    : `${window.location.origin}/api/tiles/{z}/{x}/{y}`
+                `${BACKEND_URL}/api/tiles/{z}/{x}/{y}`
             ],
             minzoom: 10,
             maxzoom: 22
@@ -307,10 +308,9 @@ const app = {
             }
 
             debounceTimer = setTimeout(() => {
-                // Use relative path for production (Netlify redirects /api to functions)
-                // For local dev, we might need to handle this differently or use proxy
-                const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : '/api';
-                fetch(`${apiUrl}/search?q=${encodeURIComponent(query)}`)
+                // Backend API URL from config
+                const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
+                fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query)}`)
                     .then(res => res.json())
                     .then(data => this.renderSidebar(data))
                     .catch(err => console.error('Search error:', err));
@@ -355,9 +355,9 @@ const app = {
     },
 
     fetchAndShowDetails(id) {
-        // Show loading state or something?
-        const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : '/api';
-        fetch(`${apiUrl}/parcels/${id}`)
+        // Backend API URL from config
+        const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
+        fetch(`${BACKEND_URL}/api/parcels/${id}`)
             .then(res => res.json())
             .then(feature => {
                 if (feature.error) {

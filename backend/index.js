@@ -43,7 +43,7 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
     // Calculate tile envelope in EPSG:3857 (Web Mercator)
     const query = `
       WITH bounds AS (
-        SELECT ST_TileEnvelope($1, $2, $3) AS geom
+        SELECT ST_TileEnvelope($1::integer, $2::integer, $3::integer) AS geom
       ),
       mvtgeom AS (
         SELECT 
@@ -60,25 +60,32 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
         FROM parcels p
         LEFT JOIN individual_surveys i ON p.num_parcel = i.num_parcel
         LEFT JOIN collective_surveys c ON p.num_parcel = c.num_parcel
-        JOIN bounds ON ST_Intersects(ST_Transform(p.geometry, 3857), bounds.geom)
+        CROSS JOIN bounds
+        WHERE ST_Intersects(ST_Transform(p.geometry, 3857), bounds.geom)
       )
       SELECT ST_AsMVT(mvtgeom.*, 'parcels', 4096, 'geom') AS mvt FROM mvtgeom;
     `;
 
     const result = await pool.query(query, [z, x, y]);
-    const mvt = result.rows[0].mvt;
+    const mvt = result.rows[0]?.mvt;
 
-    if (mvt.length === 0) {
-      res.status(204).send(); // No content
+    // Always return binary response, even if empty
+    res.setHeader('Content-Type', 'application/x-protobuf');
+    
+    if (!mvt || mvt.length === 0) {
+      // Return empty MVT tile instead of 204
+      res.send(Buffer.alloc(0));
       return;
     }
 
-    res.setHeader('Content-Type', 'application/x-protobuf');
     res.send(mvt);
 
   } catch (err) {
     console.error('Error generating MVT:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Tile params:', { z, x, y });
+    // Return empty tile on error instead of JSON error
+    res.setHeader('Content-Type', 'application/x-protobuf');
+    res.send(Buffer.alloc(0));
   }
 });
 
