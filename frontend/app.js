@@ -782,7 +782,12 @@ window.app = {
         }); // End requestAnimationFrame
     },
 
-
+    closePanel() {
+        const panel = document.getElementById('detailPanel');
+        if (panel) {
+            panel.classList.add('translate-x-full');
+        }
+    },
 
     exportData() {
         alert("L'export complet n'est pas disponible en mode 3D (Performance). Veuillez contacter l'administrateur pour un export base de données.");
