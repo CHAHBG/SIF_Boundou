@@ -55,6 +55,10 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
   const { z, x, y } = req.params;
 
   try {
+    // Add cache headers for faster tile loading
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.setHeader('Content-Type', 'application/x-protobuf');
+
     // Calculate tile envelope in EPSG:3857 (Web Mercator)
     const query = `
       WITH bounds AS (
@@ -85,8 +89,6 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
     const mvt = result.rows[0]?.mvt;
 
     // Always return binary response, even if empty
-    res.setHeader('Content-Type', 'application/x-protobuf');
-    
     if (!mvt || mvt.length === 0) {
       // Return empty MVT tile instead of 204
       res.send(Buffer.alloc(0));

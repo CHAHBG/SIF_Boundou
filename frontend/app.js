@@ -18,9 +18,12 @@ const app = {
             "sources": {
                 "osm": {
                     "type": "raster",
-                    "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+                    "tiles": ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                              "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                              "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],
                     "tileSize": 256,
-                    "attribution": "&copy; OpenStreetMap Contributors"
+                    "attribution": "&copy; OpenStreetMap Contributors",
+                    "maxzoom": 19
                 }
             },
             "layers": [{
@@ -38,7 +41,8 @@ const app = {
                     "type": "raster",
                     "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
                     "tileSize": 256,
-                    "attribution": "&copy; Esri"
+                    "attribution": "&copy; Esri",
+                    "maxzoom": 22
                 }
             },
             "layers": [{
@@ -106,6 +110,18 @@ const app = {
                 height: size,
                 data: pattern
             });
+        });
+
+        // Hide loading indicator once tiles start loading
+        this.map.on('sourcedata', (e) => {
+            if (e.sourceId === 'parcels-source' && e.isSourceLoaded) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator) {
+                    loadingIndicator.style.transition = 'opacity 0.5s';
+                    loadingIndicator.style.opacity = '0';
+                    setTimeout(() => loadingIndicator.remove(), 500);
+                }
+            }
         });
 
         // Re-add layers when style changes
@@ -312,8 +328,12 @@ const app = {
             type: 'vector',
             tiles: [
                 `${BACKEND_URL}/api/tiles/{z}/{x}/{y}`
-            ]
-            // No min/maxzoom restrictions - parcels visible at all zoom levels
+            ],
+            // Optimize tile loading for faster initial display
+            minzoom: 10,
+            maxzoom: 22,
+            // Enable tile caching
+            scheme: 'xyz'
         });
 
         this.map.addLayer({
