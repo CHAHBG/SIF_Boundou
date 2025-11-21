@@ -139,15 +139,11 @@ const app = {
             legendContent.innerHTML = `
                 <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
                      onclick="app.toggleLayerVisibility('individual')">
-                    <input type="checkbox" ${this.visibleLayers.individual ? 'checked' : ''} 
-                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
                     <span class="w-4 h-4 rounded bg-emerald-500 ${this.visibleLayers.individual ? 'opacity-80' : 'opacity-30'} border border-white"></span>
                     <span class="${!this.visibleLayers.individual ? 'line-through opacity-50' : ''}">Individuel</span>
                 </div>
                 <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
                      onclick="app.toggleLayerVisibility('collective')">
-                    <input type="checkbox" ${this.visibleLayers.collective ? 'checked' : ''} 
-                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
                     <span class="w-4 h-4 rounded bg-amber-500 ${this.visibleLayers.collective ? 'opacity-80' : 'opacity-30'} border border-white"></span>
                     <span class="${!this.visibleLayers.collective ? 'line-through opacity-50' : ''}">Collectif</span>
                 </div>
@@ -159,29 +155,21 @@ const app = {
             legendContent.innerHTML = `
                 <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
                      onclick="app.toggleLayerVisibility('Survey')">
-                    <input type="checkbox" ${this.visibleLayers.Survey ? 'checked' : ''} 
-                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
                     <span class="w-4 h-4 rounded bg-yellow-500 ${this.visibleLayers.Survey ? 'opacity-80' : 'opacity-30'} border border-white"></span>
                     <span class="${!this.visibleLayers.Survey ? 'line-through opacity-50' : ''}">Enquête</span>
                 </div>
                 <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
                      onclick="app.toggleLayerVisibility('NICAD')">
-                    <input type="checkbox" ${this.visibleLayers.NICAD ? 'checked' : ''} 
-                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
                     <span class="w-4 h-4 rounded bg-blue-500 ${this.visibleLayers.NICAD ? 'opacity-80' : 'opacity-30'} border border-white"></span>
                     <span class="${!this.visibleLayers.NICAD ? 'line-through opacity-50' : ''}">NICAD</span>
                 </div>
                 <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
                      onclick="app.toggleLayerVisibility('deliberee')">
-                    <input type="checkbox" ${this.visibleLayers.deliberee ? 'checked' : ''} 
-                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
                     <span class="w-4 h-4 rounded bg-purple-500 ${this.visibleLayers.deliberee ? 'opacity-80' : 'opacity-30'} border border-white"></span>
                     <span class="${!this.visibleLayers.deliberee ? 'line-through opacity-50' : ''}">Délibérée</span>
                 </div>
                 <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
                      onclick="app.toggleLayerVisibility('approuvee')">
-                    <input type="checkbox" ${this.visibleLayers.approuvee ? 'checked' : ''} 
-                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
                     <span class="w-4 h-4 rounded bg-emerald-500 ${this.visibleLayers.approuvee ? 'opacity-80' : 'opacity-30'} border border-white"></span>
                     <span class="${!this.visibleLayers.approuvee ? 'line-through opacity-50' : ''}">Approuvée</span>
                 </div>
@@ -694,227 +682,6 @@ const app = {
 
     exportData() {
         alert("L'export complet n'est pas disponible en mode 3D (Performance). Veuillez contacter l'administrateur pour un export base de données.");
-    },
-
-    // Topology Checker Functions
-    currentTopologyTab: 'overlaps',
-    topologyData: {},
-
-    async openTopologyChecker() {
-        const modal = document.getElementById('topologyModal');
-        modal.classList.remove('hidden');
-        
-        // Load all topology data
-        await this.loadTopologyData();
-        this.switchTopologyTab('overlaps');
-    },
-
-    closeTopologyChecker() {
-        const modal = document.getElementById('topologyModal');
-        modal.classList.add('hidden');
-        // Clear any highlighted overlaps on map
-        if (this.map.getLayer('topology-highlight')) {
-            this.map.removeLayer('topology-highlight');
-            this.map.removeSource('topology-highlight');
-        }
-    },
-
-    async loadTopologyData() {
-        const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
-        
-        try {
-            // Load overlaps
-            const overlapsRes = await fetch(`${BACKEND_URL}/api/topology/overlaps`);
-            const overlapsData = await overlapsRes.json();
-            this.topologyData.overlaps = overlapsData;
-            document.getElementById('overlapCount').textContent = overlapsData.count;
-
-            // Load invalid geometries
-            const invalidRes = await fetch(`${BACKEND_URL}/api/topology/invalid`);
-            const invalidData = await invalidRes.json();
-            this.topologyData.invalid = invalidData;
-            document.getElementById('invalidCount').textContent = invalidData.count;
-
-            // Load gaps
-            const gapsRes = await fetch(`${BACKEND_URL}/api/topology/gaps`);
-            const gapsData = await gapsRes.json();
-            this.topologyData.gaps = gapsData;
-            document.getElementById('gapCount').textContent = gapsData.count;
-
-        } catch (err) {
-            console.error('Error loading topology data:', err);
-            alert('Erreur lors du chargement des données topologiques');
-        }
-    },
-
-    switchTopologyTab(tab) {
-        this.currentTopologyTab = tab;
-        
-        // Update tab active states
-        document.querySelectorAll('.topology-tab').forEach(btn => {
-            btn.dataset.active = 'false';
-        });
-        event.target.closest('.topology-tab').dataset.active = 'true';
-
-        // Render content
-        this.renderTopologyContent(tab);
-    },
-
-    renderTopologyContent(tab) {
-        const content = document.getElementById('topologyContent');
-        
-        if (tab === 'overlaps') {
-            const overlaps = this.topologyData.overlaps?.overlaps || [];
-            if (overlaps.length === 0) {
-                content.innerHTML = `
-                    <div class="text-center py-12 text-green-600">
-                        <i data-lucide="check-circle" class="w-16 h-16 mx-auto mb-3"></i>
-                        <p class="text-lg font-semibold">Aucun chevauchement détecté</p>
-                        <p class="text-sm text-slate-500 mt-2">Toutes les parcelles sont correctement délimitées</p>
-                    </div>
-                `;
-            } else {
-                content.innerHTML = overlaps.map((overlap, idx) => `
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg hover:bg-red-100 cursor-pointer transition-colors"
-                         onclick="app.zoomToOverlap(${idx})">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i data-lucide="layers" class="w-5 h-5 text-red-600"></i>
-                                    <span class="font-bold text-red-900">Chevauchement #${idx + 1}</span>
-                                </div>
-                                <div class="text-sm space-y-1">
-                                    <p><strong>Parcelle A:</strong> ${overlap.parcel_a_num} (ID: ${overlap.parcel_a_id})</p>
-                                    <p><strong>Parcelle B:</strong> ${overlap.parcel_b_num} (ID: ${overlap.parcel_b_id})</p>
-                                    <p><strong>Surface de chevauchement:</strong> ${overlap.overlap_area.toFixed(2)} m²</p>
-                                </div>
-                            </div>
-                            <button class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-semibold">
-                                Voir
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        } else if (tab === 'invalid') {
-            const invalid = this.topologyData.invalid?.invalid || [];
-            if (invalid.length === 0) {
-                content.innerHTML = `
-                    <div class="text-center py-12 text-green-600">
-                        <i data-lucide="check-circle" class="w-16 h-16 mx-auto mb-3"></i>
-                        <p class="text-lg font-semibold">Toutes les géométries sont valides</p>
-                    </div>
-                `;
-            } else {
-                content.innerHTML = invalid.map((item, idx) => `
-                    <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg hover:bg-orange-100 transition-colors">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <i data-lucide="x-circle" class="w-5 h-5 text-orange-600"></i>
-                                    <span class="font-bold text-orange-900">Parcelle ${item.num_parcel}</span>
-                                </div>
-                                <p class="text-sm text-orange-800"><strong>Erreur:</strong> ${item.reason}</p>
-                            </div>
-                            <button onclick="app.fixGeometry(${item.id})" 
-                                class="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded font-semibold">
-                                Corriger
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        } else if (tab === 'gaps') {
-            const gaps = this.topologyData.gaps?.gaps || [];
-            if (gaps.length === 0) {
-                content.innerHTML = `
-                    <div class="text-center py-12 text-green-600">
-                        <i data-lucide="check-circle" class="w-16 h-16 mx-auto mb-3"></i>
-                        <p class="text-lg font-semibold">Aucun trou détecté</p>
-                    </div>
-                `;
-            } else {
-                content.innerHTML = gaps.map((gap, idx) => `
-                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
-                        <div class="flex items-center gap-2 mb-2">
-                            <i data-lucide="square-dashed" class="w-5 h-5 text-yellow-600"></i>
-                            <span class="font-bold text-yellow-900">Espace/Trou #${idx + 1}</span>
-                        </div>
-                        <p class="text-sm text-yellow-800"><strong>Surface:</strong> ${gap.gap_area?.toFixed(2) || 'N/A'} m²</p>
-                    </div>
-                `).join('');
-            }
-        }
-
-        lucide.createIcons();
-    },
-
-    zoomToOverlap(index) {
-        const overlap = this.topologyData.overlaps?.overlaps[index];
-        if (!overlap || !overlap.overlap_geom) return;
-
-        // Add highlight layer
-        if (this.map.getLayer('topology-highlight')) {
-            this.map.removeLayer('topology-highlight');
-            this.map.removeSource('topology-highlight');
-        }
-
-        this.map.addSource('topology-highlight', {
-            type: 'geojson',
-            data: {
-                type: 'Feature',
-                geometry: overlap.overlap_geom,
-                properties: {}
-            }
-        });
-
-        this.map.addLayer({
-            id: 'topology-highlight',
-            type: 'fill',
-            source: 'topology-highlight',
-            paint: {
-                'fill-color': '#ff0000',
-                'fill-opacity': 0.5,
-                'fill-outline-color': '#ff0000'
-            }
-        });
-
-        // Zoom to overlap
-        const bbox = turf.bbox({
-            type: 'Feature',
-            geometry: overlap.overlap_geom
-        });
-        this.map.fitBounds(bbox, { padding: 100 });
-    },
-
-    async fixGeometry(parcelId) {
-        const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
-        
-        if (!confirm('Voulez-vous tenter de corriger automatiquement cette géométrie ?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/topology/fix/${parcelId}`, {
-                method: 'POST'
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                alert('Géométrie corrigée avec succès !');
-                // Reload topology data
-                await this.loadTopologyData();
-                this.switchTopologyTab('invalid');
-                // Refresh map
-                this.map.getSource('parcels-source').clearTiles();
-                this.map.getSource('parcels-source').loadTiles();
-            } else {
-                alert('Erreur lors de la correction');
-            }
-        } catch (err) {
-            console.error('Error fixing geometry:', err);
-            alert('Erreur lors de la correction');
-        }
     }
 };
 
