@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sif-boundou-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        sync: false

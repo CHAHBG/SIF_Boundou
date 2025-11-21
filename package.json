@@ -1,4 +1,12 @@
 {
+  "name": "sif-boundou",
+  "version": "1.0.0",
+  "description": "SIF Boundou Geoportal - Land Registry System",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "install-backend": "cd backend && npm install",
+    "install-all": "npm install && npm run install-backend"
+  },
   "dependencies": {
     "dotenv": "^17.2.3",
     "pg": "^8.16.3",
