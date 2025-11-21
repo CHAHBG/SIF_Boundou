@@ -79,6 +79,17 @@ Netlify auto-deploys when you push to GitHub, so after Step 2, wait 1-2 minutes 
 
 ## Troubleshooting
 
+### "Missing script: start" error on Render?
+
+This project has a `render.yaml` configuration file that explicitly sets the backend directory. Render should automatically detect and use it.
+
+**If Render still shows this error:**
+1. In Render dashboard, go to your service settings
+2. Under "Build & Deploy" → "Root Directory", ensure it's set to `backend`
+3. Trigger a manual redeploy
+
+**Alternative**: The root `package.json` now has a fallback `start` script that runs the backend, so even if Render uses the root directory, it will work.
+
 ### Map tiles not loading?
 
 **Check browser console**. If you see CORS errors:
