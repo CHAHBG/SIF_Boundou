@@ -8,30 +8,13 @@ const compression = require('compression');
 const app = express();
 const port = process.env.PORT || 4000;
 
-// CORS Configuration - Allow Netlify frontend and localhost
+// CORS Configuration - Permissive for debugging
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'https://sifboundou.netlify.app',
-      'http://localhost:8888',
-      'http://localhost:5500',
-      'http://127.0.0.1:8888',
-      'http://127.0.0.1:5500'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('netlify.app')) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow all origins as fallback for debugging
-    }
-  },
+  origin: '*', // Allow all origins for now
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
-  credentials: true,
+  credentials: false, // Set to false when using origin: '*'
   optionsSuccessStatus: 200,
   maxAge: 86400 // 24 hours
 };
@@ -40,19 +23,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression()); // Enable gzip compression
 app.use(express.json());
-
-// Handle preflight requests - Express 5.x compatible
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // PostgreSQL connection pool with optimized settings
 const pool = new Pool({
