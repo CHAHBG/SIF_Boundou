@@ -183,7 +183,10 @@ app.get('/api/parcels/:id', async (req, res) => {
         p.num_parcel,
         p.status,
         ST_AsGeoJSON(p.geometry)::json AS geometry,
-        ST_AsGeoJSON(ST_Centroid(p.geometry))::json AS centroid,
+        json_build_array(
+          ST_X(ST_Centroid(p.geometry)),
+          ST_Y(ST_Centroid(p.geometry))
+        ) AS centroid_coords,
         p.region_senegal,
         p.department_senegal,
         p.arrondissement_senegal,
@@ -208,6 +211,8 @@ app.get('/api/parcels/:id', async (req, res) => {
             'telephone', i.telephone,
             'sexe', i.sexe,
             'date_naiss', i.date_naiss,
+            'num_piece', i.num_piece,
+            'lieu_naiss', i.lieu_naiss,
             'photo_rec_url', i.photo_rec_url,
             'photo_ver_url', i.photo_ver_url,
             'vocation', i.vocation,
@@ -222,9 +227,8 @@ app.get('/api/parcels/:id', async (req, res) => {
             'superficie_declaree', c.sup_declar,
             'superficie_reelle', c.sup_reelle,
             'type_usag', c.type_usag,
-            'type_usag', c.type_usag,
             'nom_groupement', 'Groupement',
-            'mandataries', (
+            'mandataries', COALESCE((
                 SELECT json_agg(json_build_object(
                     'prenom', m.prenom,
                     'nom', m.nom,
@@ -245,8 +249,8 @@ app.get('/api/parcels/:id', async (req, res) => {
                 ))
                 FROM mandataries m
                 WHERE m.num_parcel = p.num_parcel
-            ),
-            'beneficiaries', (
+            ), '[]'::json),
+            'beneficiaries', COALESCE((
                 SELECT json_agg(json_build_object(
                     'prenom', b.prenom,
                     'nom', b.nom,
@@ -260,7 +264,7 @@ app.get('/api/parcels/:id', async (req, res) => {
                 ))
                 FROM beneficiaries b
                 WHERE b.num_parcel = p.num_parcel
-            )
+            ), '[]'::json)
           )
           ELSE NULL
         END AS details
@@ -295,7 +299,10 @@ app.get('/api/parcels/:id', async (req, res) => {
         village: row.village,
         vocation: row.vocation,
         surface: row.superficie,
-        centroid: row.centroid,
+        centroid: {
+          type: 'Point',
+          coordinates: row.centroid_coords
+        },
         n_deliberation: row.n_deliberation,
         n_approbation: row.n_approbation,
         conflict: row.conflict,

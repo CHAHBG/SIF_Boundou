@@ -712,22 +712,24 @@ window.app = {
                             <span class="font-medium text-slate-800">${p.telephone || '--'}</span>
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Village</span>
-                            <span class="font-medium text-slate-800 break-words">${p.village || '--'}</span>
-                        </div>
-                        <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${p.superficie ? parseFloat(p.superficie).toFixed(2) : (p.surface || 0)} m²</span>
-                        </div>
-                        <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Type</span>
-                            <span class="font-medium text-slate-800">${p.type || '--'}</span>
+                            <span class="font-bold text-lg text-navy">${p.superficie_reelle ? parseFloat(p.superficie_reelle).toFixed(2) : (p.surface || 0)} m²</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
                             <span class="font-medium text-slate-800 break-words">${p.vocation || p.vocation_1 || '--'}</span>
                         </div>
                     </div>
+                </div>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-4 h-4"></i> Localisation
+                </h3>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4 grid grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-slate-400 text-xs block">Région</span> <span class="font-medium">${p.region || '--'}</span></div>
+                    <div><span class="text-slate-400 text-xs block">Département</span> <span class="font-medium">${p.department || '--'}</span></div>
+                    <div><span class="text-slate-400 text-xs block">Arrondissement</span> <span class="font-medium">${p.arrondissement || '--'}</span></div>
+                    <div><span class="text-slate-400 text-xs block">Commune</span> <span class="font-medium">${p.commune || '--'}</span></div>
+                    <div class="col-span-2"><span class="text-slate-400 text-xs block">Village</span> <span class="font-medium break-words">${p.village || '--'}</span></div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-6">
                     <i data-lucide="file-check" class="w-4 h-4"></i> Données Techniques
@@ -741,8 +743,8 @@ window.app = {
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 grid grid-cols-2 gap-2 text-sm">
                     <div><span class="text-slate-400 text-xs block">Sexe</span> ${p.sexe || '--'}</div>
                     <div><span class="text-slate-400 text-xs block">Date Naissance</span> ${p.date_naiss ? new Date(p.date_naiss).toLocaleDateString() : '--'}</div>
-                    <div><span class="text-slate-400 text-xs block">CNI</span> ${p.num_piece || '--'}</div>
-                    <div><span class="text-slate-400 text-xs block">Lieu Naissance</span> ${p.lieu_naiss || '--'}</div>
+                    <div class="col-span-2"><span class="text-slate-400 text-xs block">CNI</span> ${p.num_piece || '--'}</div>
+                    <div class="col-span-2"><span class="text-slate-400 text-xs block">Lieu Naissance</span> ${p.lieu_naiss || '--'}</div>
                 </div>
             `;
             } else if (p.type === 'collective') {
@@ -795,17 +797,23 @@ window.app = {
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${p.superficie ? parseFloat(p.superficie).toFixed(2) : (p.surface || 0)} m²</span>
+                            <span class="font-bold text-lg text-navy">${p.superficie_reelle ? parseFloat(p.superficie_reelle).toFixed(2) : (p.surface || 0)} m²</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
                             <span class="font-medium text-slate-800">${p.vocation || p.vocation_1 || '--'}</span>
                         </div>
-                        <div class="col-span-2">
-                            <span class="block text-slate-400 text-xs mb-1">Village</span>
-                            <span class="font-medium text-slate-800 break-words">${p.village || '--'}</span>
-                        </div>
                     </div>
+                </div>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-4 h-4"></i> Localisation
+                </h3>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4 grid grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-slate-400 text-xs block">Région</span> <span class="font-medium">${p.region || '--'}</span></div>
+                    <div><span class="text-slate-400 text-xs block">Département</span> <span class="font-medium">${p.department || '--'}</span></div>
+                    <div><span class="text-slate-400 text-xs block">Arrondissement</span> <span class="font-medium">${p.arrondissement || '--'}</span></div>
+                    <div><span class="text-slate-400 text-xs block">Commune</span> <span class="font-medium">${p.commune || '--'}</span></div>
+                    <div class="col-span-2"><span class="text-slate-400 text-xs block">Village</span> <span class="font-medium break-words">${p.village || '--'}</span></div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                     <i data-lucide="file-check" class="w-4 h-4"></i> Données Techniques
