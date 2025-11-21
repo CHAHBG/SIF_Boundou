@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Géoportail - Parcelles Senegal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
+        /* Map container */
+        #map { height: 100vh; width: 100%; z-index: 0; }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        /* Workflow step animations */
+        .workflow-step {
+            transition: all 0.3s ease;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background: #2c3e50;
+            color: white;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #1a252f;
+            border-bottom: 2px solid #34495e;
+        }
+
+        .sidebar-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 14px;
+            color: #95a5a6;
+        }
+
+        /* Loading spinner */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        .filter-group select:hover,
+        .filter-group input:hover {
+            border-color: rgba(52, 152, 219, 0.5);
+            background: rgba(52, 73, 94, 0.6);
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            background: rgba(52, 73, 94, 0.7);
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            letter-spacing: 0.03em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(52, 152, 219, 0.35);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(149, 165, 166, 0.15);
+            color: #ecf0f1;
+            margin-top: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(149, 165, 166, 0.25);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Parcel Details */
+        .parcel-details {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .parcel-card {
+            background: linear-gradient(145deg, rgba(31, 42, 53, 0.6), rgba(38, 52, 69, 0.7));
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .parcel-card:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(52, 152, 219, 0.15);
+        }
+
+        .parcel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 18px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .parcel-id {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #ecf0f1;
+            margin-bottom: 3px;
+        }
+
+        .parcel-subtitle {
+            font-size: 11px;
+            color: #7fa3b8;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .parcel-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .detail-item {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .detail-item:hover {
+            padding-left: 6px;
+            border-bottom-color: rgba(52, 152, 219, 0.25);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 10px;
+            color: #7fa3b8;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: #ecf0f1;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .status-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-survey {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .status-nicad {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+        }
+
+        .status-approved {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .photo-gallery img {
+            width: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .photo-gallery img:hover {
+            transform: scale(1.05);
+            border-color: rgba(52, 152, 219, 0.5);
+            box-shadow: 0 8px 24px rgba(52, 152, 219, 0.3);
+        }
+
+        .no-selection {
+            color: #7fa3b8;
+            font-style: normal;
+            text-align: center;
+            padding: 40px 24px;
+            font-size: 13px;
+            line-height: 1.6;
+            background: linear-gradient(145deg, rgba(52, 152, 219, 0.04), rgba(46, 204, 113, 0.04));
+            border-radius: 12px;
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+        }
+
+        /* Map Container */
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        /* Legend */
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border: 1px solid #333;
+            border-radius: 2px;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #95a5a6;
+        }
+
+        .spinner {
+            border: 4px solid rgba(52, 152, 219, 0.2);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Scrollbar */
+        .sidebar::-webkit-scrollbar,
+        .detail-panel::-webkit-scrollbar,
+        .parcel-details::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .detail-panel::-webkit-scrollbar-track,
+        .parcel-details::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .detail-panel::-webkit-scrollbar-thumb,
+        .parcel-details::-webkit-scrollbar-thumb {
+            background: rgba(52, 152, 219, 0.5);
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .detail-panel::-webkit-scrollbar-thumb:hover,
+        .parcel-details::-webkit-scrollbar-thumb:hover {
+            background: rgba(52, 152, 219, 0.7);
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px;
+        }
+
+        /* Custom Scrollbar */
+        .sidebar::-webkit-scrollbar,
+        .detail-panel::-webkit-scrollbar,
+        .parcel-details::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .detail-panel::-webkit-scrollbar-track,
+        .parcel-details::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .detail-panel::-webkit-scrollbar-thumb,
+        .parcel-details::-webkit-scrollbar-thumb {
+            background: rgba(52, 152, 219, 0.5);
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .detail-panel::-webkit-scrollbar-thumb:hover,
+        .parcel-details::-webkit-scrollbar-thumb:hover {
+            background: rgba(52, 152, 219, 0.7);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: 40vh;
+            }
+
+            .container {
+                flex-direction: column;
+            }
+
+            #map {
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Géoportail</h1>
+                <p>Gestion des Parcelles - Sénégal</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="statusFilter">Statut de Formalisation</label>
+                    <select id="statusFilter">
+                        <option value="">Tous les statuts</option>
+                        <option value="Survey">Enquête uniquement</option>
+                        <option value="NICAD">NICAD enregistré</option>
+                        <option value="Approved">Approuvé</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="typeFilter">Type de Parcelle</label>
+                    <select id="typeFilter">
+                        <option value="">Tous les types</option>
+                        <option value="Individual">Individuel</option>
+                        <option value="Collective">Collectif</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="searchInput">Recherche par Num_parcel</label>
+                    <input type="text" id="searchInput" placeholder="Ex: P001">
+                </div>
+
+                <button id="applyFilters" class="btn btn-primary">Appliquer les filtres</button>
+                <button id="resetFilters" class="btn btn-secondary">Réinitialiser</button>
+            </div>
+
+            <!-- No parcel details here: details moved to right panel -->
+        </aside>
+
+        <!-- Map -->
+        <main id="map"></main>
+
+        <!-- Right Details Panel (floating overlay) -->
+        <aside class="detail-panel hidden" id="detailPanel">
+            <button class="close-panel" id="closePanelBtn" title="Fermer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="parcel-details">
+                <div id="detailsContent" class="no-selection">
+                    Cliquez sur une parcelle pour voir les détails
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Application JS -->
+    <script src="app.js"></script>
+</body>
+</html>

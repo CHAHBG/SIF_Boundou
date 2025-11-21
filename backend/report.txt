@@ -1,0 +1,6 @@
+--- Column Check Report ---
+individual_surveys.prenom: EXISTS
+individual_surveys.nom: EXISTS
+collective_surveys.nom_groupement: MISSING
+collective_surveys.nom: MISSING
+---------------------------

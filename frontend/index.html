@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senegal Land Registry - Gestion Foncière 3D</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom Scrollbar for Sidebar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
+        /* Map container height */
+        #map { height: 100vh; width: 100%; z-index: 0; }
+
+        /* Glassmorphism for overlays */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex text-slate-800 bg-slate-100">
+
+    <!-- SIDEBAR: Parcel Cards & Controls -->
+    <aside class="w-full md:w-[400px] flex flex-col h-full bg-white shadow-2xl z-20 relative transition-transform duration-300 transform translate-x-0">
+        
+        <!-- Header -->
+        <div class="p-5 border-b border-slate-200 bg-slate-50">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="map" class="text-indigo-600 w-6 h-6"></i>
+                <h1 class="text-xl font-bold text-indigo-900">SIG Foncier Sénégal</h1>
+            </div>
+            <p class="text-xs text-slate-500">Plateforme de gestion des parcelles et enquêtes (3D)</p>
+        </div>
+
+        <!-- Filters & Search -->
+        <div class="p-4 border-b border-slate-200 bg-white space-y-3">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                <input type="text" id="searchInput" placeholder="Rechercher (N° Parcelle, Nom, NICAD)..." 
+                       class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+            </div>
+            
+            <div class="flex gap-2">
+                <div class="text-xs text-slate-500 flex items-center gap-1">
+                    <i data-lucide="info" class="w-3 h-3"></i>
+                    <span>Utilisez la recherche pour trouver une parcelle spécifique.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parcel List (Cards) -->
+        <div id="parcelList" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3 bg-slate-100">
+            <!-- Initial State -->
+            <div class="text-center p-8 text-slate-400">
+                <i data-lucide="layers" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                <p class="text-sm">Explorez la carte ou recherchez une parcelle pour voir les détails.</p>
+            </div>
+        </div>
+
+        <!-- Stats Footer -->
+        <div class="p-3 border-t border-slate-200 bg-white text-xs text-slate-500 flex justify-between">
+            <span id="totalCount">Vue 3D Active</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> En ligne</span>
+        </div>
+    </aside>
+
+    <!-- MAIN MAP AREA -->
+    <main class="flex-1 relative">
+        <div id="map"></div>
+        
+        <!-- Mobile Toggle Button -->
+        <button id="sidebarToggle" class="md:hidden absolute top-4 left-4 z-[1000] bg-white p-2 rounded shadow-lg">
+            <i data-lucide="menu" class="w-6 h-6 text-slate-700"></i>
+        </button>
+
+        <!-- Legend Overlay -->
+        <div class="absolute bottom-6 right-6 z-[1000] glass-panel p-4 rounded-lg shadow-lg border border-white/20 max-w-xs hidden md:block">
+            <h4 class="text-xs font-bold uppercase text-slate-500 mb-2 tracking-wider">Légende</h4>
+            <div id="legendContent" class="space-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded bg-yellow-500 opacity-80 border border-white"></span>
+                    <span>Enquête (Stage 1)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded bg-blue-500 opacity-80 border border-white"></span>
+                    <span>NICAD (Stage 2)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded bg-emerald-500 opacity-80 border border-white"></span>
+                    <span>Approuvé (Stage 3)</span>
+                </div>
+                <div class="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-400">
+                    <i data-lucide="info" class="w-3 h-3 inline"></i> Utilisez les boutons à droite pour basculer la vue.
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Controls -->
+        <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+            <!-- Basemap Switcher -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+                <button onclick="app.switchBasemap('osm')" class="p-2 hover:bg-slate-100 border-b border-slate-100" title="Plan (OSM)">
+                    <i data-lucide="map" class="w-5 h-5 text-slate-600"></i>
+                </button>
+                <button onclick="app.switchBasemap('satellite')" class="p-2 hover:bg-slate-100" title="Satellite">
+                    <i data-lucide="satellite" class="w-5 h-5 text-slate-600"></i>
+                </button>
+            </div>
+            
+            <!-- 3D/2D Toggle -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                <button onclick="app.toggle3D()" class="p-2 hover:bg-slate-100" title="Basculer 3D/2D">
+                    <i data-lucide="box" class="w-5 h-5 text-slate-600"></i>
+                </button>
+            </div>
+            
+            <!-- Color By Type Toggle -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                <button onclick="app.toggleColorByType()" class="p-2 hover:bg-slate-100" title="Couleur par Type">
+                    <i data-lucide="palette" class="w-5 h-5 text-slate-600"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- DETAIL MODAL (Hidden by default) - Positioned contextually -->
+    <div id="detailModal" class="fixed z-50 hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-[700px] max-h-[calc(100vh-40px)] overflow-hidden flex flex-col border-2 border-indigo-100">
+            <!-- Modal Header with Gradient -->
+            <div class="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                        <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <h2 id="modalTitle" class="text-lg font-bold text-white">PARCEL-ID</h2>
+                        <span id="modalStatus" class="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/30 text-white backdrop-blur-sm">Status</span>
+                    </div>
+                </div>
+                <button onclick="app.closeModal()" class="p-1.5 hover:bg-white/20 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 overflow-y-auto bg-gradient-to-b from-white to-slate-50">
+                
+                <!-- Status Workflow Bar -->
+                <div class="flex items-center justify-between mb-6 relative bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                    <div class="absolute left-8 right-8 top-1/2 h-0.5 bg-gradient-to-r from-emerald-200 via-blue-200 to-purple-200 -z-10"></div>
+                    
+                    <!-- Step 1 -->
+                    <div class="flex flex-col items-center z-10">
+                        <div id="step1" class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center mb-1.5 shadow-lg ring-4 ring-emerald-100">
+                            <i data-lucide="check" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-emerald-700 uppercase">Enquête</span>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex flex-col items-center z-10">
+                        <div id="step2" class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1.5 shadow-md transition-all">
+                            <span class="text-xs font-bold">2</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">NICAD</span>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex flex-col items-center z-10">
+                        <div id="step3" class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1.5 shadow-md transition-all">
+                            <span class="text-xs font-bold">3</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Approbation</span>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-5">
+                    <!-- Left Col: Info -->
+                    <div class="space-y-3.5">
+                        <div class="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                            <i data-lucide="user" class="w-4 h-4"></i> Propriétaire / Occupant
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+                            <p class="text-base font-bold text-slate-800 mb-3" id="modalOwnerName">Chargement...</p>
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div class="bg-slate-50 p-2 rounded-lg">
+                                    <span class="block text-slate-400 text-[10px] uppercase font-semibold mb-0.5">Téléphone</span>
+                                    <span class="font-medium text-slate-700" id="modalPhone">--</span>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-lg">
+                                    <span class="block text-slate-400 text-[10px] uppercase font-semibold mb-0.5">Village</span>
+                                    <span class="font-medium text-slate-700" id="modalVillage">--</span>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-lg">
+                                    <span class="block text-slate-400 text-[10px] uppercase font-semibold mb-0.5">Type</span>
+                                    <span class="font-medium text-slate-700" id="modalType">--</span>
+                                </div>
+                                <div class="bg-slate-50 p-2 rounded-lg">
+                                    <span class="block text-slate-400 text-[10px] uppercase font-semibold mb-0.5">Vocation</span>
+                                    <span class="font-medium text-slate-700" id="modalVocation">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider mt-4">
+                            <i data-lucide="file-check" class="w-4 h-4"></i> Données Techniques
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm space-y-2.5">
+                            <div class="flex justify-between items-center text-sm bg-gradient-to-r from-indigo-50 to-purple-50 p-2.5 rounded-lg">
+                                <span class="text-slate-600 font-medium">NICAD</span>
+                                <span class="font-mono font-bold text-indigo-700" id="modalNicad">--</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm bg-slate-50 p-2.5 rounded-lg">
+                                <span class="text-slate-600 font-medium">N° Délibération</span>
+                                <span class="font-semibold text-slate-700" id="modalDelib">--</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm bg-slate-50 p-2.5 rounded-lg">
+                                <span class="text-slate-600 font-medium">Surface</span>
+                                <span class="font-semibold text-slate-700" id="modalSurface">-- m²</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Col: Photos & Map Preview (Conceptual) -->
+                    <div>
+                        <div class="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">
+                            <i data-lucide="image" class="w-4 h-4"></i> Pièces Justificatives
+                        </div>
+                        <div class="grid gap-3">
+                            <div class="group relative overflow-hidden rounded-xl border-2 border-indigo-100 bg-slate-100 aspect-video shadow-md hover:shadow-lg transition-all">
+                                <img id="modalPhotoRecto" src="" alt="CNI Recto" class="w-full h-full object-cover transition-transform group-hover:scale-110">
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white text-xs p-2 font-semibold">CNI Recto</div>
+                            </div>
+                            <div class="group relative overflow-hidden rounded-xl border-2 border-indigo-100 bg-slate-100 aspect-video shadow-md hover:shadow-lg transition-all">
+                                <img id="modalPhotoVerso" src="" alt="CNI Verso" class="w-full h-full object-cover transition-transform group-hover:scale-110">
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white text-xs p-2 font-semibold">CNI Verso / Photo Terrain</div>
+                            </div>
+                        </div>
+                        
+                        <div id="conflictAlert" class="hidden mt-4 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 p-3 rounded-xl flex items-start gap-3 shadow-md">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 mt-0.5"></i>
+                            <div>
+                                <p class="text-sm font-bold text-red-700">⚠ Conflit Signalé</p>
+                                <p class="text-xs text-red-600" id="modalConflictText">Details...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="p-3.5 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-indigo-50 flex justify-end gap-2.5">
+                <button onclick="app.closeModal()" class="px-4 py-2 text-sm text-slate-700 hover:bg-white rounded-lg font-semibold transition-all border border-slate-200 shadow-sm">
+                    Fermer
+                </button>
+                <button onclick="alert('Génération du certificat PDF en cours...')" class="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg font-semibold shadow-md flex items-center gap-2 transition-all">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Imprimer Fiche
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

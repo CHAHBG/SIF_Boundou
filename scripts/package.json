@@ -1,0 +1,14 @@
+{
+  "name": "data-import",
+  "version": "1.0.0",
+  "description": "Import parcels and surveys into PostgreSQL",
+  "scripts": {
+    "import-surveys": "node import_surveys.js",
+    "import-all": "node import_all.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "xlsx": "^0.18.5",
+    "dotenv": "^16.3.1"
+  }
+}
