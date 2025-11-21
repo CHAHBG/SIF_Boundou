@@ -1,4 +1,4 @@
-const app = {
+window.app = {
     map: null,
     currentStyle: 'osm',
     is3D: true,
