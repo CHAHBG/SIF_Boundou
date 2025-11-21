@@ -639,22 +639,35 @@ window.app = {
             statusBadge.innerText = p.status || 'Inconnu';
             statusBadge.style.backgroundColor = statusColor + '20';
             statusBadge.style.color = statusColor;
-            // Workflow Visualizer
+            
+            // Workflow Visualizer - update the circles inside step2 and step3
             const step2 = document.getElementById('step2');
             const step3 = document.getElementById('step3');
-            step2.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
-            step3.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
-            step2.innerHTML = '<span class="text-xs font-bold">2</span>';
-            step3.innerHTML = '<span class="text-xs font-bold">3</span>';
-            if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
-                step2.className = "w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
-                step2.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+            
+            if (step2) {
+                const step2Circle = step2.querySelector('div');
+                step2Circle.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
+                step2Circle.innerHTML = '<span class="text-xs font-bold">2</span>';
+                
+                if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
+                    step2Circle.className = "w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
+                    step2Circle.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+                }
             }
-            if (p.status === 'approuvee' || p.status === 'Approved') {
-                step3.className = "w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
-                step3.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+            
+            if (step3) {
+                const step3Circle = step3.querySelector('div');
+                step3Circle.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
+                step3Circle.innerHTML = '<span class="text-xs font-bold">3</span>';
+                
+                if (p.status === 'approuvee' || p.status === 'Approved') {
+                    step3Circle.className = "w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
+                    step3Circle.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+                }
             }
+            
             lucide.createIcons();
+            
             // Individual vs Collective
             const contentArea = document.getElementById('panelContentLeft');
             contentArea.innerHTML = '';
