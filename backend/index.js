@@ -10,15 +10,27 @@ const port = process.env.PORT || 4000;
 
 // CORS Configuration - Allow Netlify frontend and localhost
 const corsOptions = {
-  origin: [
-    'https://sifboundou.netlify.app',
-    'http://localhost:8888',
-    'http://localhost:5500',
-    'http://127.0.0.1:8888',
-    'http://127.0.0.1:5500'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'https://sifboundou.netlify.app',
+      'http://localhost:8888',
+      'http://localhost:5500',
+      'http://127.0.0.1:8888',
+      'http://127.0.0.1:5500'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('netlify.app')) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins as fallback for debugging
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
   credentials: true,
   optionsSuccessStatus: 200,
   maxAge: 86400 // 24 hours
@@ -28,6 +40,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression()); // Enable gzip compression
 app.use(express.json());
+
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
 
 // PostgreSQL connection pool with optimized settings
 const pool = new Pool({
@@ -66,6 +81,11 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
   const { z, x, y } = req.params;
 
   try {
+    // Explicitly set CORS headers for tile endpoint (backup to global CORS)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+    
     // Add cache headers for faster tile loading
     res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400'); // Cache for 1 hour, serve stale for 24h
     res.setHeader('Content-Type', 'application/x-protobuf');
