@@ -44,7 +44,9 @@ const app = {
     colors: {
         'Survey': '#eab308',   // Yellow
         'NICAD': '#3b82f6',    // Blue
-        'Approved': '#10b981', // Emerald
+        'deliberee': '#8b5cf6', // Purple
+        'approuvee': '#10b981', // Emerald
+        'Approved': '#10b981', // Emerald (keep for backward compatibility)
         'unknown': '#94a3b8'   // Slate
     },
 
@@ -63,7 +65,7 @@ const app = {
         this.map.on('load', () => {
             this.addSourcesAndLayers();
             this.setupInteractions();
-            
+
             // Load rooftop pattern for habitat - simple diagonal lines pattern
             const size = 64;
             const pattern = new Uint8Array(size * size * 4);
@@ -101,7 +103,7 @@ const app = {
     updateLegend() {
         const legendContent = document.getElementById('legendContent');
         if (!legendContent) return;
-        
+
         if (this.colorByType) {
             legendContent.innerHTML = `
                 <div class="flex items-center gap-2">
@@ -120,15 +122,19 @@ const app = {
             legendContent.innerHTML = `
                 <div class="flex items-center gap-2">
                     <span class="w-4 h-4 rounded bg-yellow-500 opacity-80 border border-white"></span>
-                    <span>Enquête (Stage 1)</span>
+                    <span>Enquête</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="w-4 h-4 rounded bg-blue-500 opacity-80 border border-white"></span>
-                    <span>NICAD (Stage 2)</span>
+                    <span>NICAD</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded bg-purple-500 opacity-80 border border-white"></span>
+                    <span>Délibérée</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="w-4 h-4 rounded bg-emerald-500 opacity-80 border border-white"></span>
-                    <span>Approuvé (Stage 3)</span>
+                    <span>Approuvée</span>
                 </div>
                 <div class="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-400">
                     <i data-lucide="info" class="w-3 h-3 inline"></i> Mode: Couleur par Statut
@@ -174,6 +180,8 @@ const app = {
                 ['get', 'status'],
                 'Survey', '#eab308',
                 'NICAD', '#3b82f6',
+                'deliberee', '#8b5cf6',
+                'approuvee', '#10b981',
                 'Approved', '#10b981',
                 '#94a3b8'
             ];
@@ -182,9 +190,9 @@ const app = {
 
     updateLayers() {
         if (!this.map.getLayer('parcels-3d')) return;
-        
+
         this.map.setPaintProperty('parcels-3d', 'fill-extrusion-color', this.getColorExpression());
-        
+
         if (this.is3D) {
             this.map.setPaintProperty('parcels-3d', 'fill-extrusion-height', [
                 'case',
@@ -205,7 +213,9 @@ const app = {
         this.map.addSource('parcels-source', {
             type: 'vector',
             tiles: [
-                'http://localhost:4000/api/tiles/{z}/{x}/{y}'
+                window.location.hostname === 'localhost'
+                    ? 'http://localhost:4000/api/tiles/{z}/{x}/{y}'
+                    : '/api/tiles/{z}/{x}/{y}'
             ],
             minzoom: 10,
             maxzoom: 22
@@ -242,7 +252,7 @@ const app = {
                 'line-opacity': 0.5
             }
         });
-        
+
         // 3. Highlight Layer (for hover/selection)
         this.map.addLayer({
             'id': 'parcels-highlight',
@@ -271,13 +281,13 @@ const app = {
             if (e.features.length > 0) {
                 const feature = e.features[0];
                 const id = feature.properties.id; // Assuming 'id' is in properties
-                
+
                 // Highlight the feature
                 this.map.setFilter('parcels-highlight', ['==', 'id', id]);
-                
+
                 // Store click coordinates for modal positioning
                 this.lastClickPoint = e.point;
-                
+
                 // Fetch full details
                 this.fetchAndShowDetails(id);
             }
@@ -298,7 +308,10 @@ const app = {
             }
 
             debounceTimer = setTimeout(() => {
-                fetch(`http://localhost:4000/api/search?q=${encodeURIComponent(query)}`)
+                // Use relative path for production (Netlify redirects /api to functions)
+                // For local dev, we might need to handle this differently or use proxy
+                const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : '/api';
+                fetch(`${apiUrl}/search?q=${encodeURIComponent(query)}`)
                     .then(res => res.json())
                     .then(data => this.renderSidebar(data))
                     .catch(err => console.error('Search error:', err));
@@ -317,7 +330,7 @@ const app = {
 
         results.forEach(item => {
             const color = this.colors[item.status] || this.colors['unknown'];
-            
+
             const card = document.createElement('div');
             card.className = 'bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group';
             card.onclick = () => {
@@ -338,27 +351,28 @@ const app = {
             `;
             list.appendChild(card);
         });
-        
+
         lucide.createIcons();
     },
 
     fetchAndShowDetails(id) {
         // Show loading state or something?
-        fetch(`http://localhost:4000/api/parcels/${id}`)
+        const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : '/api';
+        fetch(`${apiUrl}/parcels/${id}`)
             .then(res => res.json())
             .then(feature => {
                 if (feature.error) {
                     alert('Erreur: ' + feature.error);
                     return;
                 }
-                
+
                 // Fly to location
                 if (feature.geometry) {
                     // Calculate bounds or center
                     // Since we have geometry in the detail response (GeoJSON), we can use it
                     // But MapLibre needs LngLatBounds or center.
                     // We can use a simple helper to get centroid or bounds from GeoJSON geometry
-                    
+
                     // Simple centroid approximation if available in properties (backend sends it)
                     if (feature.properties.centroid) {
                         const coords = feature.properties.centroid.coordinates;
@@ -382,7 +396,7 @@ const app = {
         const statusColor = this.colors[p.status] || this.colors['unknown'];
         const statusBadge = document.getElementById('modalStatus');
         statusBadge.innerText = p.status || 'Inconnu';
-        statusBadge.style.backgroundColor = statusColor + '20'; 
+        statusBadge.style.backgroundColor = statusColor + '20';
         statusBadge.style.color = statusColor;
         // Workflow Visualizer
         const step2 = document.getElementById('step2');
@@ -391,11 +405,11 @@ const app = {
         step3.className = "w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
         step2.innerHTML = '<span class="text-xs font-bold">2</span>';
         step3.innerHTML = '<span class="text-xs font-bold">3</span>';
-        if (p.status === 'NICAD' || p.status === 'Approved') {
+        if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
             step2.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
             step2.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
         }
-        if (p.status === 'Approved') {
+        if (p.status === 'approuvee' || p.status === 'Approved') {
             step3.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
             step3.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
         }
@@ -422,7 +436,8 @@ const app = {
                 </h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2 mb-4">
                     <div class="flex justify-between text-sm"><span class="text-slate-500">NICAD</span><span class="font-mono font-bold text-indigo-600">${p.nicad || 'En attente'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || 'En attente'}</span></div>
+                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || '--'}</span></div>
+                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Approbation</span><span class="font-medium">${p.n_approbation || '--'}</span></div>
                     <div class="flex justify-between text-sm"><span class="text-slate-500">Surface</span><span class="font-medium">${p.surface || 0} m²</span></div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-6">Détails Supplémentaires</h3>
@@ -449,7 +464,7 @@ const app = {
                     </div>
                 </div>
             `).join('');
-            
+
             const beneficiariesHtml = (p.beneficiaries || []).map((b, idx) => `
                 <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
                     <div class='flex justify-between items-start mb-1'>
@@ -469,7 +484,7 @@ const app = {
                     </div>` : ''}
                 </div>
             `).join('');
-            
+
             leftCol.innerHTML = `
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                     <i data-lucide="users" class="w-4 h-4"></i> Groupement / Collectif
@@ -486,7 +501,8 @@ const app = {
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">Données Techniques</h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2 mb-4">
                     <div class="flex justify-between text-sm"><span class="text-slate-500">NICAD</span><span class="font-mono font-bold text-indigo-600">${p.nicad || 'En attente'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || 'En attente'}</span></div>
+                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || '--'}</span></div>
+                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Approbation</span><span class="font-medium">${p.n_approbation || '--'}</span></div>
                     <div class="flex justify-between text-sm"><span class="text-slate-500">Surface</span><span class="font-medium">${p.surface || 0} m²</span></div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-4 mb-2">
@@ -519,7 +535,7 @@ const app = {
         } else {
             alertBox.classList.add('hidden');
         }
-        
+
         // Position modal contextually
         const modal = document.getElementById('detailModal');
         if (this.lastClickPoint) {
@@ -529,17 +545,17 @@ const app = {
             const windowHeight = window.innerHeight;
             const modalWidth = 700;
             const maxModalHeight = windowHeight - 40; // 20px margin top and bottom
-            
+
             // Calculate position - try to show to the right of click
             let left = Math.min(x + 20, windowWidth - modalWidth - 20);
             let top = Math.max(20, Math.min(y - 100, windowHeight - maxModalHeight - 20));
-            
+
             // If too far right, show on left side of click
             if (left < 420) { // accounting for sidebar
                 left = Math.max(420, x - modalWidth - 20);
                 if (left < 420) left = 420; // fallback if still too far left
             }
-            
+
             // Ensure modal stays within viewport bounds
             if (top + maxModalHeight > windowHeight - 20) {
                 top = windowHeight - maxModalHeight - 20;
@@ -547,7 +563,7 @@ const app = {
             if (top < 20) {
                 top = 20;
             }
-            
+
             modal.style.left = `${left}px`;
             modal.style.top = `${top}px`;
             modal.style.transform = 'none';
@@ -557,7 +573,7 @@ const app = {
             modal.style.top = '50%';
             modal.style.transform = 'translate(-50%, -50%)';
         }
-        
+
         modal.classList.remove('hidden');
         lucide.createIcons();
     },

@@ -142,6 +142,10 @@ app.get('/api/parcels/:id', async (req, res) => {
         END AS type,
         COALESCE(i.vocation, c.vocation) AS vocation,
         COALESCE(i.sup_reelle, c.sup_reelle) AS superficie,
+        p.numero_deliberation AS n_deliberation,
+        p.numero_approbation AS n_approbation,
+        p.conflict,
+        p.conflict_reason,
         CASE 
           WHEN i.num_parcel IS NOT NULL THEN json_build_object(
             'prenom', i.prenom,
@@ -237,6 +241,10 @@ app.get('/api/parcels/:id', async (req, res) => {
         vocation: row.vocation,
         surface: row.superficie,
         centroid: row.centroid,
+        n_deliberation: row.n_deliberation,
+        n_approbation: row.n_approbation,
+        conflict: row.conflict,
+        conflict_reason: row.conflict_reason,
         ...row.details // Spread specific details
       }
     };
@@ -262,6 +270,10 @@ app.get('/api/filters', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+module.exports = app;
