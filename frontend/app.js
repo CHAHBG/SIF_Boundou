@@ -557,47 +557,110 @@ const app = {
     },
 
     fetchAndShowDetails(id) {
-        // Show loading state
-        const modal = document.getElementById('detailModal');
-        const loadingHTML = '<div class="p-8 text-center"><div class="spinner mx-auto mb-4"></div><p class="text-slate-600">Chargement des détails...</p></div>';
+        // INSTANT MODAL: Show modal immediately with loading skeleton
+        this.openModalWithLoading(id);
         
         // Backend API URL from config
         const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
         
+        // Fetch data in background and populate when ready
         this.fetchWithRetry(`${BACKEND_URL}/api/parcels/${id}`)
             .then(feature => {
                 if (feature.error) {
+                    this.closeModal();
                     alert('Erreur: ' + feature.error);
                     return;
                 }
 
-                // Fly to location with optimized animation
-                if (feature.geometry) {
-                    if (feature.properties.centroid) {
-                        const coords = feature.properties.centroid.coordinates;
-                        this.map.flyTo({
-                            center: coords,
-                            zoom: 19,
-                            pitch: 60,
-                            duration: 1200,
-                            essential: true
-                        });
-                    }
+                // Fly to location with optimized animation (non-blocking)
+                if (feature.geometry && feature.properties.centroid) {
+                    const coords = feature.properties.centroid.coordinates;
+                    this.map.flyTo({
+                        center: coords,
+                        zoom: 19,
+                        pitch: 60,
+                        duration: 1200,
+                        essential: true
+                    });
                 }
 
-                this.openModal(feature);
+                // Populate modal with actual data
+                this.populateModal(feature);
             })
             .catch(err => {
                 console.error('Error fetching details:', err);
+                this.closeModal();
                 alert('Impossible de charger les détails. Vérifiez votre connexion Internet et réessayez.\n\nErreur: ' + err.message);
             });
     },
 
-    openModal(feature) {
-        // Use requestAnimationFrame for smoother modal opening
+    openModalWithLoading(id) {
+        // Show modal instantly with loading skeleton
+        const modal = document.getElementById('detailModal');
+        
+        // Set basic info
+        document.getElementById('modalTitle').innerText = `Parcelle #${id}`;
+        
+        // Show loading skeleton in both columns
+        const leftCol = document.querySelector('#detailModal .grid > div:first-child');
+        leftCol.innerHTML = `
+            <div class="animate-pulse space-y-4">
+                <div class="h-6 bg-slate-200 rounded w-3/4"></div>
+                <div class="h-32 bg-slate-200 rounded"></div>
+                <div class="h-6 bg-slate-200 rounded w-1/2"></div>
+                <div class="h-24 bg-slate-200 rounded"></div>
+            </div>
+        `;
+        
+        // Loading placeholders for images
+        document.getElementById('modalPhotoRecto').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='16'%3EChargement...%3C/text%3E%3C/svg%3E";
+        document.getElementById('modalPhotoVerso').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e2e8f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='16'%3EChargement...%3C/text%3E%3C/svg%3E";
+        
+        // Hide conflict alert initially
+        document.getElementById('conflictAlert').classList.add('hidden');
+        
+        // Position and show modal immediately
+        if (this.lastClickPoint) {
+            const x = this.lastClickPoint.x;
+            const y = this.lastClickPoint.y;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const modalWidth = 700;
+            const maxModalHeight = windowHeight - 40;
+
+            let left = Math.min(x + 20, windowWidth - modalWidth - 20);
+            let top = Math.max(20, Math.min(y - 100, windowHeight - maxModalHeight - 20));
+
+            if (left < 420) {
+                left = Math.max(420, x - modalWidth - 20);
+                if (left < 420) left = 420;
+            }
+
+            if (top + maxModalHeight > windowHeight - 20) {
+                top = windowHeight - maxModalHeight - 20;
+            }
+            if (top < 20) {
+                top = 20;
+            }
+
+            modal.style.left = `${left}px`;
+            modal.style.top = `${top}px`;
+            modal.style.transform = 'none';
+        } else {
+            modal.style.left = '50%';
+            modal.style.top = '50%';
+            modal.style.transform = 'translate(-50%, -50%)';
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    populateModal(feature) {
+        // Populate modal with actual data (already open and positioned)
         requestAnimationFrame(() => {
         const p = feature.properties;
         document.getElementById('modalTitle').innerText = p.num_parcel || p.id;
+
         // Status Badge
         const statusColor = this.colors[p.status] || this.colors['unknown'];
         const statusBadge = document.getElementById('modalStatus');
@@ -742,45 +805,7 @@ const app = {
             alertBox.classList.add('hidden');
         }
 
-        // Position modal contextually
-        const modal = document.getElementById('detailModal');
-        if (this.lastClickPoint) {
-            const x = this.lastClickPoint.x;
-            const y = this.lastClickPoint.y;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            const modalWidth = 700;
-            const maxModalHeight = windowHeight - 40; // 20px margin top and bottom
-
-            // Calculate position - try to show to the right of click
-            let left = Math.min(x + 20, windowWidth - modalWidth - 20);
-            let top = Math.max(20, Math.min(y - 100, windowHeight - maxModalHeight - 20));
-
-            // If too far right, show on left side of click
-            if (left < 420) { // accounting for sidebar
-                left = Math.max(420, x - modalWidth - 20);
-                if (left < 420) left = 420; // fallback if still too far left
-            }
-
-            // Ensure modal stays within viewport bounds
-            if (top + maxModalHeight > windowHeight - 20) {
-                top = windowHeight - maxModalHeight - 20;
-            }
-            if (top < 20) {
-                top = 20;
-            }
-
-            modal.style.left = `${left}px`;
-            modal.style.top = `${top}px`;
-            modal.style.transform = 'none';
-        } else {
-            // Fallback to center-right of viewport
-            modal.style.left = '50%';
-            modal.style.top = '50%';
-            modal.style.transform = 'translate(-50%, -50%)';
-        }
-
-        modal.classList.remove('hidden');
+        // Modal already visible and positioned, just update icons
         lucide.createIcons();
         }); // End requestAnimationFrame
     },

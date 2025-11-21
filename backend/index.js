@@ -173,6 +173,10 @@ app.get('/api/parcels/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Add cache headers for faster repeated access
+    res.setHeader('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+    res.setHeader('Content-Type', 'application/json');
+
     const query = `
       SELECT
         p.id,
