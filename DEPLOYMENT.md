@@ -8,6 +8,32 @@ This application has a **separate frontend and backend**:
 - **Backend**: Node.js/Express API with PostGIS hosted on Render.com
 - **Database**: PostgreSQL with PostGIS on Neon (Serverless Postgres)
 
+## Performance Optimizations
+
+### Recent Updates (Latest)
+- ✅ **Network Retry Logic**: Automatic retries (3x) for failed API requests with exponential backoff
+- ✅ **Request Timeout**: 10-second timeout for all fetch requests to prevent hanging
+- ✅ **Gzip Compression**: Backend responses compressed (50-70% size reduction)
+- ✅ **Connection Pooling**: Optimized PostgreSQL pool (20 max, 2 min connections)
+- ✅ **Geometry Simplification**: Vector tiles simplified at lower zoom levels for faster loading
+- ✅ **Extended Caching**: Tiles cached for 1 hour with 24-hour stale-while-revalidate
+- ✅ **Debounced Interactions**: Click/hover events throttled to prevent lag
+- ✅ **Abortable Requests**: Search requests cancelled when typing to reduce network congestion
+- ✅ **Error Recovery**: Graceful error handling with user-friendly messages
+
+### Frontend Optimizations
+- Multiple OSM tile servers (a, b, c subdomains) for load balancing
+- Tile size: 512px (fewer tile requests)
+- Buffer: 64px (smoother panning)
+- requestAnimationFrame for all UI updates
+- Passive event listeners where possible
+
+### Backend Optimizations
+- Spatial indexing with ST_Intersects && bounding box check
+- Query timeout: 30 seconds
+- Statement timeout: 30 seconds
+- Idle connection cleanup: 30 seconds
+
 ## Quick Start - Deploy to Production
 
 ### Step 1: Deploy Backend API to Render.com
