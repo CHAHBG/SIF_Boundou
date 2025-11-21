@@ -706,11 +706,27 @@ window.app = {
                 </h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
                     <p class="text-lg font-semibold text-slate-800">${p.prenom || ''} ${p.nom || ''}</p>
-                    <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
-                        <div><span class="block text-slate-400 text-xs">Téléphone</span><span class="font-medium">${p.telephone || '--'}</span></div>
-                        <div><span class="block text-slate-400 text-xs">Village</span><span class="font-medium break-words">${p.village || '--'}</span></div>
-                        <div><span class="block text-slate-400 text-xs">Type</span><span class="font-medium">${p.type || '--'}</span></div>
-                        <div><span class="block text-slate-400 text-xs">Vocation</span><span class="font-medium break-words">${p.vocation || '--'}</span></div>
+                    <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Téléphone</span>
+                            <span class="font-medium text-slate-800">${p.telephone || '--'}</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Village</span>
+                            <span class="font-medium text-slate-800 break-words">${p.village || '--'}</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Superficie</span>
+                            <span class="font-bold text-lg text-navy">${p.superficie ? parseFloat(p.superficie).toFixed(2) : (p.surface || 0)} m²</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Type</span>
+                            <span class="font-medium text-slate-800">${p.type || '--'}</span>
+                        </div>
+                        <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Vocation</span>
+                            <span class="font-medium text-slate-800 break-words">${p.vocation || p.vocation_1 || '--'}</span>
+                        </div>
                     </div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-6">
@@ -720,7 +736,6 @@ window.app = {
                     <div class="flex justify-between text-sm"><span class="text-slate-500">NICAD</span><span class="font-mono font-bold text-indigo-600">${p.nicad || 'En attente'}</span></div>
                     <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || '--'}</span></div>
                     <div class="flex justify-between text-sm"><span class="text-slate-500">N° Approbation</span><span class="font-medium">${p.n_approbation || '--'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">Surface</span><span class="font-medium">${p.surface || 0} m²</span></div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-6">Détails Supplémentaires</h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 grid grid-cols-2 gap-2 text-sm">
@@ -769,23 +784,36 @@ window.app = {
 
                 contentArea.innerHTML = `
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="users" class="w-4 h-4"></i> Groupement / Collectif
+                    <i data-lucide="users" class="w-4 h-4"></i> Parcelle Collective
                 </h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
-                    <p class="text-lg font-semibold text-slate-800">Parcelle Collective</p>
-                    <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
-                        <div><span class="block text-slate-400 text-xs">Nombre d'affectataires</span><span class="font-medium">${p.nombre_affectata || (p.beneficiaries ? p.beneficiaries.length : '--')}</span></div>
-                        <div><span class="block text-slate-400 text-xs">Vocation</span><span class="font-medium break-words">${p.vocation || '--'}</span></div>
-                        <div><span class="block text-slate-400 text-xs">Village</span><span class="font-medium break-words">${p.village || '--'}</span></div>
-                        <div><span class="block text-slate-400 text-xs">Surface</span><span class="font-medium">${p.surface || 0} m²</span></div>
+                    <p class="text-lg font-semibold text-slate-800 mb-3">Groupement / Collectif</p>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Nombre d'affectataires</span>
+                            <span class="font-bold text-lg text-navy">${p.nombre_affectata || (p.beneficiaries ? p.beneficiaries.length : '--')}</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Superficie</span>
+                            <span class="font-bold text-lg text-navy">${p.superficie ? parseFloat(p.superficie).toFixed(2) : (p.surface || 0)} m²</span>
+                        </div>
+                        <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Vocation</span>
+                            <span class="font-medium text-slate-800">${p.vocation || p.vocation_1 || '--'}</span>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="block text-slate-400 text-xs mb-1">Village</span>
+                            <span class="font-medium text-slate-800 break-words">${p.village || '--'}</span>
+                        </div>
                     </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">Données Techniques</h3>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="file-check" class="w-4 h-4"></i> Données Techniques
+                </h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2 mb-4">
                     <div class="flex justify-between text-sm"><span class="text-slate-500">NICAD</span><span class="font-mono font-bold text-indigo-600">${p.nicad || 'En attente'}</span></div>
                     <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || '--'}</span></div>
                     <div class="flex justify-between text-sm"><span class="text-slate-500">N° Approbation</span><span class="font-medium">${p.n_approbation || '--'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">Surface</span><span class="font-medium">${p.surface || 0} m²</span></div>
                 </div>
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-4 mb-2">
                     <i data-lucide="user-check" class="w-4 h-4"></i> Mandataires (${(p.mandataries || []).length})
