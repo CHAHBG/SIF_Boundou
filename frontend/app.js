@@ -145,6 +145,7 @@ window.app = {
 
         this.setupSearch();
         this.updateLegend();
+        this.updateViewModeIndicator();
         lucide.createIcons();
 
         // Auto-hide rotation tip after 8 seconds
@@ -214,6 +215,13 @@ window.app = {
         this.map.setStyle(this.styles[styleName]);
     },
 
+    updateViewModeIndicator() {
+        const indicator = document.getElementById('viewModeIndicator');
+        if (indicator) {
+            indicator.textContent = this.is3D ? 'Vue 3D Active' : 'Vue 2D Active';
+        }
+    },
+
     toggle3D() {
         this.is3D = !this.is3D;
         this.map.easeTo({
@@ -221,6 +229,7 @@ window.app = {
             duration: 1000
         });
         this.updateLayers();
+        this.updateViewModeIndicator();
     },
 
     toggleColorByType() {
@@ -438,14 +447,30 @@ window.app = {
 
     setupSearch() {
         const searchInput = document.getElementById('searchInput');
+        const dropdown = document.getElementById('searchResultsDropdown');
         let debounceTimer;
         let currentSearchRequest = null;
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Show dropdown on focus if there's a query
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value.trim().length >= 2) {
+                dropdown.classList.remove('hidden');
+            }
+        });
 
         searchInput.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             const query = e.target.value.trim();
 
             if (query.length < 2) {
+                dropdown.classList.add('hidden');
                 this.renderSidebar([]);
                 // Cancel ongoing request
                 if (currentSearchRequest) {
@@ -476,12 +501,14 @@ window.app = {
                     })
                     .then(data => {
                         this.renderSidebar(data);
+                        dropdown.classList.remove('hidden');
                         currentSearchRequest = null;
                     })
                     .catch(err => {
                         if (err.name !== 'AbortError') {
                             console.error('Search error:', err);
                             this.renderSidebar([]);
+                            dropdown.classList.remove('hidden');
                             const list = document.getElementById('parcelList');
                             list.innerHTML = '<div class="text-center p-8 text-red-500"><i data-lucide="wifi-off" class="w-12 h-12 mx-auto mb-3 opacity-50"></i><p class="text-sm">Erreur de connexion. Vérifiez votre réseau.</p></div>';
                             lucide.createIcons();
@@ -508,6 +535,7 @@ window.app = {
             card.className = 'bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group';
             card.onclick = () => {
                 this.fetchAndShowDetails(item.id);
+                document.getElementById('searchResultsDropdown').classList.add('hidden');
             };
 
             card.innerHTML = `
@@ -639,35 +667,35 @@ window.app = {
             statusBadge.innerText = p.status || 'Inconnu';
             statusBadge.style.backgroundColor = statusColor + '20';
             statusBadge.style.color = statusColor;
-            
+
             // Workflow Visualizer - update the circles inside step2 and step3
             const step2 = document.getElementById('step2');
             const step3 = document.getElementById('step3');
-            
+
             if (step2) {
                 const step2Circle = step2.querySelector('div');
                 step2Circle.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
                 step2Circle.innerHTML = '<span class="text-xs font-bold">2</span>';
-                
+
                 if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
                     step2Circle.className = "w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
                     step2Circle.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
                 }
             }
-            
+
             if (step3) {
                 const step3Circle = step3.querySelector('div');
                 step3Circle.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
                 step3Circle.innerHTML = '<span class="text-xs font-bold">3</span>';
-                
+
                 if (p.status === 'approuvee' || p.status === 'Approved') {
                     step3Circle.className = "w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
                     step3Circle.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
                 }
             }
-            
+
             lucide.createIcons();
-            
+
             // Individual vs Collective
             const contentArea = document.getElementById('panelContentLeft');
             contentArea.innerHTML = '';

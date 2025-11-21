@@ -103,17 +103,17 @@
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2">
                 <img src="assets/logos/logo_senegal.jpg" alt="Senegal" class="h-8 object-contain">
-                <img src="assets/logos/logo_procasef.jpg" alt="PROCASEF" class="h-8 object-contain hidden sm:block">
-                <img src="assets/logos/logo_bet.jpg" alt="BET Plus" class="h-8 object-contain hidden sm:block">
+                <img src="assets/logos/logo_procasef.jpg" alt="PROCASEF" class="h-8 object-contain">
+                <img src="assets/logos/logo_bet.jpg" alt="BET Plus" class="h-8 object-contain">
             </div>
             <div class="hidden md:flex items-center gap-2 border-l border-slate-200 pl-4">
                 <i data-lucide="map" class="text-navy w-5 h-5"></i>
-                <h1 class="text-lg font-bold text-navy">SIG Foncier Sénégal</h1>
+                <h1 class="text-lg font-bold text-navy">SIF BOUNDOU</h1>
             </div>
         </div>
 
         <!-- Center: Search Bar -->
-        <div class="flex-1 max-w-xl mx-4 relative group">
+        <div class="flex-1 max-w-md ml-auto mr-4 relative group">
             <div class="relative">
                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
                 <input type="text" id="searchInput" placeholder="Rechercher (N° Parcelle, Nom, NICAD)..."
@@ -132,7 +132,7 @@
         <!-- Right: Stats/Info -->
         <div class="flex items-center gap-3">
             <div class="text-xs text-right hidden lg:block">
-                <p class="font-bold text-navy">Vue 3D Active</p>
+                <p id="viewModeIndicator" class="font-bold text-navy">Vue 3D Active</p>
                 <p class="text-slate-500 flex items-center justify-end gap-1"><span
                         class="w-2 h-2 rounded-full bg-green-marker"></span> En ligne</p>
             </div>
