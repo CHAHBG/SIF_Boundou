@@ -97,70 +97,55 @@
         <p class="text-white text-sm mt-3 text-center font-medium">Chargement des parcelles...</p>
     </div>
 
-    <!-- SIDEBAR: Parcel Cards & Controls -->
-    <aside
-        class="w-full md:w-[450px] flex flex-col h-full bg-white shadow-2xl z-20 relative transition-transform duration-300 transform translate-x-0">
-
-        <!-- Header with Logos -->
-        <div class="p-4 border-b border-slate-200 bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <img src="assets/logos/logo_senegal.jpg" alt="Senegal" class="h-12 object-contain">
-                <img src="assets/logos/logo_procasef.jpg" alt="PROCASEF" class="h-10 object-contain">
-                <img src="assets/logos/logo_bet.jpg" alt="BET Plus" class="h-10 object-contain">
+    <!-- HEADER -->
+    <header class="w-full bg-white shadow-md z-30 flex items-center justify-between px-4 py-2 h-16 relative">
+        <!-- Left: Logos & Title -->
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <img src="assets/logos/logo_senegal.jpg" alt="Senegal" class="h-8 object-contain">
+                <img src="assets/logos/logo_procasef.jpg" alt="PROCASEF" class="h-8 object-contain hidden sm:block">
+                <img src="assets/logos/logo_bet.jpg" alt="BET Plus" class="h-8 object-contain hidden sm:block">
             </div>
-            <div class="flex items-center gap-2 mb-1">
-                <i data-lucide="map" class="text-navy w-6 h-6"></i>
-                <h1 class="text-xl font-bold text-navy">SIG Foncier Sénégal</h1>
+            <div class="hidden md:flex items-center gap-2 border-l border-slate-200 pl-4">
+                <i data-lucide="map" class="text-navy w-5 h-5"></i>
+                <h1 class="text-lg font-bold text-navy">SIG Foncier Sénégal</h1>
             </div>
-            <p class="text-xs text-slate-500">Plateforme de gestion des parcelles et enquêtes (3D)</p>
         </div>
 
-        <!-- Filters & Search -->
-        <div class="p-4 border-b border-slate-200 bg-slate-50 space-y-3">
+        <!-- Center: Search Bar -->
+        <div class="flex-1 max-w-xl mx-4 relative group">
             <div class="relative">
                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
                 <input type="text" id="searchInput" placeholder="Rechercher (N° Parcelle, Nom, NICAD)..."
-                    class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-medium focus:border-blue-medium outline-none transition-all shadow-sm">
+                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-medium focus:border-blue-medium outline-none transition-all shadow-sm">
             </div>
 
-            <div class="flex gap-2">
-                <div class="text-xs text-slate-500 flex items-center gap-1">
-                    <i data-lucide="info" class="w-3 h-3"></i>
-                    <span>Utilisez la recherche pour trouver une parcelle spécifique.</span>
+            <!-- Search Results Dropdown -->
+            <div id="searchResultsDropdown"
+                class="absolute top-full left-0 w-full bg-white shadow-xl rounded-b-lg border border-t-0 border-slate-200 max-h-[60vh] overflow-y-auto hidden z-50">
+                <div id="parcelList" class="p-2 space-y-2">
+                    <!-- Results will be injected here -->
                 </div>
             </div>
         </div>
 
-        <!-- Parcel List (Cards) -->
-        <div id="parcelList" class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3 bg-slate-100">
-            <!-- Initial State -->
-            <div class="text-center p-8 text-slate-400">
-                <i data-lucide="layers" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
-                <p class="text-sm">Explorez la carte ou recherchez une parcelle pour voir les détails.</p>
+        <!-- Right: Stats/Info -->
+        <div class="flex items-center gap-3">
+            <div class="text-xs text-right hidden lg:block">
+                <p class="font-bold text-navy">Vue 3D Active</p>
+                <p class="text-slate-500 flex items-center justify-end gap-1"><span
+                        class="w-2 h-2 rounded-full bg-green-marker"></span> En ligne</p>
             </div>
         </div>
-
-        <!-- Stats Footer -->
-        <div class="p-3 border-t border-slate-200 bg-white text-xs text-slate-500 flex justify-between">
-            <span id="totalCount" class="font-medium text-navy">Vue 3D Active</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-marker"></span> En
-                ligne</span>
-        </div>
-    </aside>
+    </header>
 
     <!-- MAIN MAP AREA -->
-    <main class="flex-1 relative">
-        <div id="map"></div>
+    <main class="flex-1 relative w-full h-[calc(100vh-64px)]">
+        <div id="map" class="w-full h-full"></div>
 
-        <!-- Mobile Toggle Button -->
-        <button id="sidebarToggle"
-            class="md:hidden absolute top-4 left-4 z-[1000] bg-white p-2 rounded shadow-lg text-navy">
-            <i data-lucide="menu" class="w-6 h-6"></i>
-        </button>
-
-        <!-- Legend Overlay -->
+        <!-- Legend Overlay (Bottom Left) -->
         <div
-            class="absolute bottom-6 right-6 z-[1000] glass-panel p-4 rounded-lg shadow-lg border border-white/20 max-w-xs hidden md:block">
+            class="absolute bottom-6 left-6 z-[1000] glass-panel p-4 rounded-lg shadow-lg border border-white/20 max-w-xs hidden md:block">
             <h4 class="text-xs font-bold uppercase text-navy mb-2 tracking-wider">Légende</h4>
             <div id="legendContent" class="space-y-2 text-sm">
                 <div class="flex items-center gap-2">
@@ -182,8 +167,8 @@
             </div>
         </div>
 
-        <!-- Map Controls -->
-        <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+        <!-- Map Controls (Bottom Right) -->
+        <div class="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
             <!-- Basemap Switcher -->
             <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden flex flex-col">
                 <button onclick="app.switchBasemap('osm')"
@@ -242,35 +227,41 @@
         </div>
 
         <!-- Detail Panel (Slide-in from right) -->
-        <div id="detailPanel" class="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-[2000] transform translate-x-full transition-transform duration-300 overflow-y-auto">
+        <div id="detailPanel"
+            class="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-[2000] transform translate-x-full transition-transform duration-300 overflow-y-auto mt-16 md:mt-0 md:h-[calc(100vh-64px)] md:top-16 border-l border-slate-200">
             <!-- Panel Header -->
             <div class="sticky top-0 bg-navy text-white p-4 z-10">
                 <div class="flex justify-between items-center mb-2">
                     <h2 id="panelTitle" class="text-xl font-bold">Détails de la Parcelle</h2>
-                    <button onclick="app.closePanel()" class="text-white hover:bg-white/20 p-2 rounded transition-colors">
+                    <button onclick="app.closePanel()"
+                        class="text-white hover:bg-white/20 p-2 rounded transition-colors">
                         <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
-                <span id="panelStatus" class="text-xs font-bold px-3 py-1 rounded-full inline-block">Chargement...</span>
-                
+                <span id="panelStatus"
+                    class="text-xs font-bold px-3 py-1 rounded-full inline-block">Chargement...</span>
+
                 <!-- Workflow Progress -->
                 <div class="flex justify-between items-center mt-4 max-w-md">
                     <div class="text-center">
-                        <div class="w-10 h-10 rounded-full bg-green-marker text-white flex items-center justify-center mb-1 shadow-sm">
+                        <div
+                            class="w-10 h-10 rounded-full bg-green-marker text-white flex items-center justify-center mb-1 shadow-sm">
                             <i data-lucide="check" class="w-5 h-5"></i>
                         </div>
                         <span class="text-xs">Enquête</span>
                     </div>
                     <div class="flex-1 h-1 bg-white/30 mx-2"></div>
                     <div id="step2" class="text-center">
-                        <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
                             <span class="text-xs font-bold">2</span>
                         </div>
                         <span class="text-xs">NICAD</span>
                     </div>
                     <div class="flex-1 h-1 bg-white/30 mx-2"></div>
                     <div id="step3" class="text-center">
-                        <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
                             <span class="text-xs font-bold">3</span>
                         </div>
                         <span class="text-xs">Approuvé</span>
@@ -300,11 +291,13 @@
                 <div class="grid grid-cols-2 gap-4 mt-6">
                     <div>
                         <h4 class="text-sm font-semibold text-slate-600 mb-2">Photo Recto</h4>
-                        <img id="panelPhotoRecto" src="https://placehold.co/400x300?text=Non+Disponible" alt="Photo Recto" class="w-full h-48 object-cover rounded-lg border border-slate-200">
+                        <img id="panelPhotoRecto" src="https://placehold.co/400x300?text=Non+Disponible"
+                            alt="Photo Recto" class="w-full h-48 object-cover rounded-lg border border-slate-200">
                     </div>
                     <div>
                         <h4 class="text-sm font-semibold text-slate-600 mb-2">Photo Verso</h4>
-                        <img id="panelPhotoVerso" src="https://placehold.co/400x300?text=Non+Disponible" alt="Photo Verso" class="w-full h-48 object-cover rounded-lg border border-slate-200">
+                        <img id="panelPhotoVerso" src="https://placehold.co/400x300?text=Non+Disponible"
+                            alt="Photo Verso" class="w-full h-48 object-cover rounded-lg border border-slate-200">
                     </div>
                 </div>
             </div>
