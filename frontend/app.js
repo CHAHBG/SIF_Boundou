@@ -59,8 +59,20 @@ const app = {
             zoom: 15,
             pitch: 45, // Tilt for 3D effect
             bearing: -17.6,
-            antialias: true
+            antialias: true,
+            dragRotate: true, // Enable rotation with Ctrl+drag or right-click drag
+            touchPitch: true, // Enable pitch on touch devices
+            maxPitch: 85, // Allow steeper angles
+            minZoom: 10, // Prevent zooming out too far
+            maxZoom: 22 // Allow very close zoom
         });
+
+        // Add navigation controls (zoom, rotation, compass)
+        this.map.addControl(new maplibregl.NavigationControl({
+            showCompass: true,
+            showZoom: true,
+            visualizePitch: true
+        }), 'top-left');
 
         this.map.on('load', () => {
             this.addSourcesAndLayers();
@@ -98,6 +110,16 @@ const app = {
         this.setupSearch();
         this.updateLegend();
         lucide.createIcons();
+
+        // Auto-hide rotation tip after 8 seconds
+        setTimeout(() => {
+            const tip = document.getElementById('rotationTip');
+            if (tip) {
+                tip.style.transition = 'opacity 0.5s';
+                tip.style.opacity = '0';
+                setTimeout(() => tip.classList.add('hidden'), 500);
+            }
+        }, 8000);
     },
 
     updateLegend() {
@@ -165,6 +187,15 @@ const app = {
         this.updateLegend();
     },
 
+    resetBearing() {
+        // Reset rotation and pitch to default view
+        this.map.easeTo({
+            bearing: -17.6,
+            pitch: this.is3D ? 45 : 0,
+            duration: 1000
+        });
+    },
+
     getColorExpression() {
         if (this.colorByType) {
             return [
@@ -217,9 +248,8 @@ const app = {
             type: 'vector',
             tiles: [
                 `${BACKEND_URL}/api/tiles/{z}/{x}/{y}`
-            ],
-            minzoom: 10,
-            maxzoom: 22
+            ]
+            // No min/maxzoom restrictions - parcels visible at all zoom levels
         });
 
         this.map.addLayer({
@@ -389,6 +419,8 @@ const app = {
     },
 
     openModal(feature) {
+        // Use requestAnimationFrame for smoother modal opening
+        requestAnimationFrame(() => {
         const p = feature.properties;
         document.getElementById('modalTitle').innerText = p.num_parcel || p.id;
         // Status Badge
@@ -575,6 +607,7 @@ const app = {
 
         modal.classList.remove('hidden');
         lucide.createIcons();
+        }); // End requestAnimationFrame
     },
 
     closeModal() {
