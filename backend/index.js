@@ -14,6 +14,9 @@ app.use(express.json());
 // PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/geoportail',
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 // Test database connection
