@@ -3,6 +3,15 @@ const app = {
     currentStyle: 'osm',
     is3D: true,
     colorByType: false,
+    lastClickLngLat: null,
+    visibleLayers: {
+        'individual': true,
+        'collective': true,
+        'Survey': true,
+        'NICAD': true,
+        'deliberee': true,
+        'approuvee': true
+    },
     styles: {
         'osm': {
             "version": 8,
@@ -128,38 +137,56 @@ const app = {
 
         if (this.colorByType) {
             legendContent.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-emerald-500 opacity-80 border border-white"></span>
-                    <span>Individuel</span>
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
+                     onclick="app.toggleLayerVisibility('individual')">
+                    <input type="checkbox" ${this.visibleLayers.individual ? 'checked' : ''} 
+                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
+                    <span class="w-4 h-4 rounded bg-emerald-500 ${this.visibleLayers.individual ? 'opacity-80' : 'opacity-30'} border border-white"></span>
+                    <span class="${!this.visibleLayers.individual ? 'line-through opacity-50' : ''}">Individuel</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-amber-500 opacity-80 border border-white"></span>
-                    <span>Collectif</span>
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
+                     onclick="app.toggleLayerVisibility('collective')">
+                    <input type="checkbox" ${this.visibleLayers.collective ? 'checked' : ''} 
+                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
+                    <span class="w-4 h-4 rounded bg-amber-500 ${this.visibleLayers.collective ? 'opacity-80' : 'opacity-30'} border border-white"></span>
+                    <span class="${!this.visibleLayers.collective ? 'line-through opacity-50' : ''}">Collectif</span>
                 </div>
                 <div class="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-400">
-                    <i data-lucide="info" class="w-3 h-3 inline"></i> Mode: Couleur par Type
+                    <i data-lucide="info" class="w-3 h-3 inline"></i> Cliquez pour afficher/masquer
                 </div>
             `;
         } else {
             legendContent.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-yellow-500 opacity-80 border border-white"></span>
-                    <span>Enquête</span>
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
+                     onclick="app.toggleLayerVisibility('Survey')">
+                    <input type="checkbox" ${this.visibleLayers.Survey ? 'checked' : ''} 
+                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
+                    <span class="w-4 h-4 rounded bg-yellow-500 ${this.visibleLayers.Survey ? 'opacity-80' : 'opacity-30'} border border-white"></span>
+                    <span class="${!this.visibleLayers.Survey ? 'line-through opacity-50' : ''}">Enquête</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-blue-500 opacity-80 border border-white"></span>
-                    <span>NICAD</span>
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
+                     onclick="app.toggleLayerVisibility('NICAD')">
+                    <input type="checkbox" ${this.visibleLayers.NICAD ? 'checked' : ''} 
+                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
+                    <span class="w-4 h-4 rounded bg-blue-500 ${this.visibleLayers.NICAD ? 'opacity-80' : 'opacity-30'} border border-white"></span>
+                    <span class="${!this.visibleLayers.NICAD ? 'line-through opacity-50' : ''}">NICAD</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-purple-500 opacity-80 border border-white"></span>
-                    <span>Délibérée</span>
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
+                     onclick="app.toggleLayerVisibility('deliberee')">
+                    <input type="checkbox" ${this.visibleLayers.deliberee ? 'checked' : ''} 
+                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
+                    <span class="w-4 h-4 rounded bg-purple-500 ${this.visibleLayers.deliberee ? 'opacity-80' : 'opacity-30'} border border-white"></span>
+                    <span class="${!this.visibleLayers.deliberee ? 'line-through opacity-50' : ''}">Délibérée</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-emerald-500 opacity-80 border border-white"></span>
-                    <span>Approuvée</span>
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" 
+                     onclick="app.toggleLayerVisibility('approuvee')">
+                    <input type="checkbox" ${this.visibleLayers.approuvee ? 'checked' : ''} 
+                           class="w-4 h-4 cursor-pointer" onclick="event.stopPropagation()">
+                    <span class="w-4 h-4 rounded bg-emerald-500 ${this.visibleLayers.approuvee ? 'opacity-80' : 'opacity-30'} border border-white"></span>
+                    <span class="${!this.visibleLayers.approuvee ? 'line-through opacity-50' : ''}">Approuvée</span>
                 </div>
                 <div class="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-400">
-                    <i data-lucide="info" class="w-3 h-3 inline"></i> Mode: Couleur par Statut
+                    <i data-lucide="info" class="w-3 h-3 inline"></i> Cliquez pour afficher/masquer
                 </div>
             `;
         }
@@ -194,6 +221,52 @@ const app = {
             pitch: this.is3D ? 45 : 0,
             duration: 1000
         });
+    },
+
+    toggleLayerVisibility(layer) {
+        this.visibleLayers[layer] = !this.visibleLayers[layer];
+        this.updateLegend();
+        this.applyLayerFilters();
+    },
+
+    applyLayerFilters() {
+        if (!this.map.getLayer('parcels-3d')) return;
+
+        let filter;
+        if (this.colorByType) {
+            // Filter by type (individual/collective)
+            const visibleTypes = [];
+            if (this.visibleLayers.individual) visibleTypes.push('individual');
+            if (this.visibleLayers.collective) visibleTypes.push('collective');
+            
+            if (visibleTypes.length === 0) {
+                filter = ['==', 'type', 'none']; // Hide all
+            } else if (visibleTypes.length === 2) {
+                filter = null; // Show all
+            } else {
+                filter = ['in', ['get', 'type'], ['literal', visibleTypes]];
+            }
+        } else {
+            // Filter by status
+            const visibleStatuses = [];
+            if (this.visibleLayers.Survey) visibleStatuses.push('Survey');
+            if (this.visibleLayers.NICAD) visibleStatuses.push('NICAD');
+            if (this.visibleLayers.deliberee) visibleStatuses.push('deliberee');
+            if (this.visibleLayers.approuvee) {
+                visibleStatuses.push('approuvee');
+                visibleStatuses.push('Approved'); // Handle both variants
+            }
+            
+            if (visibleStatuses.length === 0) {
+                filter = ['==', 'status', 'none']; // Hide all
+            } else if (visibleStatuses.length >= 5) {
+                filter = null; // Show all
+            } else {
+                filter = ['in', ['get', 'status'], ['literal', visibleStatuses]];
+            }
+        }
+
+        this.map.setFilter('parcels-3d', filter);
     },
 
     getColorExpression() {
@@ -234,6 +307,9 @@ const app = {
         } else {
             this.map.setPaintProperty('parcels-3d', 'fill-extrusion-height', 0);
         }
+
+        // Apply visibility filters
+        this.applyLayerFilters();
     },
 
     addSourcesAndLayers() {
