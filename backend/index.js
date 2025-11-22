@@ -209,6 +209,7 @@ app.get('/api/parcels/:id', async (req, res) => {
             'prenom', i.prenom,
             'nom', i.nom,
             'telephone', i.telephone,
+            'telephon2', i.telephon2,
             'sexe', i.sexe,
             'date_naiss', i.date_naiss,
             'num_piece', i.num_piece,
@@ -228,42 +229,45 @@ app.get('/api/parcels/:id', async (req, res) => {
             'superficie_reelle', c.sup_reelle,
             'type_usag', c.type_usag,
             'nom_groupement', 'Groupement',
+            'telephon2', c.telephon2,
             'mandataries', COALESCE((
-                SELECT json_agg(json_build_object(
-                    'prenom', m.prenom,
-                    'nom', m.nom,
-                    'sexe', m.sexe,
-                    'telephone', m.contact,
-                    'typ_per', m.typ_per,
-                    'date_naiss', m.date_naiss,
-                    'lieu_naiss', m.lieu_naiss,
-                    'num_piece', m.num_piece,
-                    'date_deliv', m.date_deliv,
-                    'photo_rec_url', m.photo_rec_url,
-                    'photo_ver_url', m.photo_ver_url,
-                    'situ_mat', m.situ_mat,
-                    'nbr_epse', m.nbr_epse,
-                    'chef_fam', m.chef_fam,
-                    'chef_mena', m.chef_mena,
-                    'nat_001', m.nat_001
-                ))
-                FROM mandataries m
-                WHERE m.num_parcel = p.num_parcel
+              SELECT json_agg(json_build_object(
+                'prenom', m.prenom,
+                'nom', m.nom,
+                'sexe', m.sexe,
+                'telephone', m.contact,
+                'telephon2', m.telephon2,
+                'typ_per', m.typ_per,
+                'date_naiss', m.date_naiss,
+                'lieu_naiss', m.lieu_naiss,
+                'num_piece', m.num_piece,
+                'date_deliv', m.date_deliv,
+                'photo_rec_url', m.photo_rec_url,
+                'photo_ver_url', m.photo_ver_url,
+                'situ_mat', m.situ_mat,
+                'nbr_epse', m.nbr_epse,
+                'chef_fam', m.chef_fam,
+                'chef_mena', m.chef_mena,
+                'nat_001', m.nat_001
+              ))
+              FROM mandataries m
+              WHERE m.num_parcel = p.num_parcel
             ), '[]'::json),
             'beneficiaries', COALESCE((
-                SELECT json_agg(json_build_object(
-                    'prenom', b.prenom,
-                    'nom', b.nom,
-                    'sexe', b.sexe,
-                    'date_naiss', b.date_naiss,
-                    'type_piece', b.type_piece,
-                    'num_piece', b.num_piece,
-                    'photo_rec_url', b.photo_rec_url,
-                    'photo_ver_url', b.photo_ver_url,
-                    'signature', b.signature
-                ))
-                FROM beneficiaries b
-                WHERE b.num_parcel = p.num_parcel
+              SELECT json_agg(json_build_object(
+                'prenom', b.prenom,
+                'nom', b.nom,
+                'sexe', b.sexe,
+                'date_naiss', b.date_naiss,
+                'type_piece', b.type_piece,
+                'num_piece', b.num_piece,
+                'telephon2', b.telephon2,
+                'photo_rec_url', b.photo_rec_url,
+                'photo_ver_url', b.photo_ver_url,
+                'signature', b.signature
+              ))
+              FROM beneficiaries b
+              WHERE b.num_parcel = p.num_parcel
             ), '[]'::json)
           )
           ELSE NULL

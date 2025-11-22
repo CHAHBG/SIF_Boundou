@@ -824,11 +824,12 @@ window.app = {
                     <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Téléphone</span>
-                            <span class="font-medium text-slate-800">${p.telephone || '--'}</span>
+                            <span class="font-medium text-slate-800">${p.telephone || p.telephon2 || '--'}</span>
+                            ${p.telephon2 ? `<span class='block text-xs text-slate-500 mt-1'>Autre: ${p.telephon2}</span>` : ''}
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${parseFloat(p.superficie_reelle || p.surface || 0).toFixed(2)} m²</span>
+                            <span class="font-bold text-lg text-navy">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) + ' m²' : '--'}</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
@@ -880,7 +881,7 @@ window.app = {
                     </div>` : ''}
                     <div class='grid grid-cols-2 gap-1 text-xs text-slate-600'>
                         <div><span class='text-slate-400'>Sexe:</span> ${m.sexe || '--'}</div>
-                        <div><span class='text-slate-400'>Tél:</span> ${m.telephone || '--'}</div>
+                        <div><span class='text-slate-400'>Tél:</span> ${m.telephone || m.telephon2 || '--'}${m.telephon2 ? `<span class='block text-xs text-slate-500 mt-1'>Autre: ${m.telephon2}</span>` : ''}</div>
                         <div><span class='text-slate-400'>Né(e) le:</span> ${m.date_naiss ? new Date(m.date_naiss).toLocaleDateString() : '--'}</div>
                         <div><span class='text-slate-400'>À:</span> ${m.lieu_naiss || '--'}</div>
                         <div class='col-span-2'><span class='text-slate-400'>CNI:</span> ${m.num_piece || '--'}</div>
@@ -898,6 +899,7 @@ window.app = {
                         <div><span class='text-slate-400'>Né(e):</span> ${b.date_naiss ? new Date(b.date_naiss).toLocaleDateString() : '--'}</div>
                         <div><span class='text-slate-400'>Pièce:</span> ${b.type_piece || '--'}</div>
                         <div class='col-span-2'><span class='text-slate-400'>N°:</span> ${b.num_piece || '--'}</div>
+                        ${b.telephon2 ? `<div class='col-span-2'><span class='text-slate-400'>Autre Tél:</span> ${b.telephon2}</div>` : ''}
                     </div>
                     ${b.photo_rec_url || b.photo_ver_url || b.signature ? `
                     <div class='grid grid-cols-3 gap-1 mt-2'>
@@ -926,7 +928,7 @@ window.app = {
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${parseFloat(p.superficie_reelle || p.surface || 0).toFixed(2)} m²</span>
+                            <span class="font-bold text-lg text-navy">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) + ' m²' : '--'}</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
