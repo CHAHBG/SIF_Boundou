@@ -142,7 +142,7 @@ window.app = {
         });
 
         // Re-add layers when style changes
-        this.map.on('load', () => {
+        this.map.on('styledata', () => {
             // Check if source exists to prevent "Source already exists" error
             if (!this.map.getSource('parcels-source')) {
                 this.addSourcesAndLayers();
@@ -233,6 +233,10 @@ window.app = {
         if (this.currentStyle === styleName) return;
         this.currentStyle = styleName;
         this.map.setStyle(this.styles[styleName]);
+
+        this.map.once('styledata', () => {
+            this.addSourcesAndLayers();
+        });
     },
 
     updateViewModeIndicator() {
@@ -468,15 +472,16 @@ window.app = {
             tolerance: 3.5
         });
 
-        // Find raster basemap layer (e.g., 'satellite' or 'osm')
-        let afterLayerId = null;
+        // Find a symbol layer to place parcels under (so labels remain on top)
+        // If no symbol layer is found (e.g. satellite), we add to the top.
+        let beforeLayerId = undefined;
         try {
             const styleLayers = this.map.getStyle().layers || [];
-            // Find the first raster layer (satellite or osm)
-            const rasterLayer = styleLayers.find(l => l.type === 'raster');
-            if (rasterLayer) afterLayerId = rasterLayer.id;
+            // Find the first symbol layer
+            const symbolLayer = styleLayers.find(l => l.type === 'symbol');
+            if (symbolLayer) beforeLayerId = symbolLayer.id;
         } catch (e) {
-            // ignore - getStyle may not be ready
+            // ignore
         }
 
         const parcels3dLayer = {
@@ -509,9 +514,9 @@ window.app = {
             'filter': ['==', 'id', '']
         };
 
-        if (afterLayerId) {
-            this.map.addLayer(parcels3dLayer, undefined, afterLayerId);
-            this.map.addLayer(highlightLayer, undefined, afterLayerId);
+        if (beforeLayerId) {
+            this.map.addLayer(parcels3dLayer, beforeLayerId);
+            this.map.addLayer(highlightLayer, beforeLayerId);
         } else {
             this.map.addLayer(parcels3dLayer);
             this.map.addLayer(highlightLayer);
