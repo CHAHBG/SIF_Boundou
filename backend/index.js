@@ -200,6 +200,7 @@ app.get('/api/parcels/:id', async (req, res) => {
         END AS type,
         COALESCE(i.vocation, c.vocation) AS vocation,
         COALESCE(i.sup_reelle, c.sup_reelle) AS superficie,
+        p.superficie AS superficie_parcelle,
         p.numero_deliberation AS n_deliberation,
         p.numero_approbation AS n_approbation,
         p.conflict,
@@ -299,8 +300,8 @@ app.get('/api/parcels/:id', async (req, res) => {
         village: row.village,
         // Always provide vocation and superficie fields at top level
         vocation: row.vocation || (row.details && row.details.vocation) || '',
-        superficie_reelle: (row.details && row.details.superficie_reelle) || row.superficie || '',
-        surface: row.superficie || (row.details && row.details.superficie_reelle) || '',
+        superficie_reelle: (row.details && row.details.superficie_reelle) || row.superficie || row.superficie_parcelle || '',
+        surface: row.superficie || row.superficie_parcelle || (row.details && row.details.superficie_reelle) || '',
         centroid: {
           type: 'Point',
           coordinates: row.centroid_coords
