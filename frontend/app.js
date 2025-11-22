@@ -380,18 +380,7 @@ window.app = {
             }
         });
 
-        // 2. Line Layer (Borders)
-        this.map.addLayer({
-            'id': 'parcels-line',
-            'type': 'line',
-            'source': 'parcels-source',
-            'source-layer': 'parcels',
-            'paint': {
-                'line-color': '#ffffff',
-                'line-width': 1,
-                'line-opacity': 0.5
-            }
-        });
+
 
         // 3. Highlight Layer (for hover/selection)
         this.map.addLayer({
