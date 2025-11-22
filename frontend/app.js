@@ -867,7 +867,11 @@ window.app = {
                 // Get first mandataire for display
                 const firstMandataire = (p.mandataries || [])[0] || {};
                 const mandataireName = `${firstMandataire.prenom || ''} ${firstMandataire.nom || ''}`.trim() || 'Groupement / Collectif';
-                
+
+                // Prefer top-level, fallback to first mandataire for collective
+                const superficieValue = p.superficie_reelle || p.surface || firstMandataire.superficie_reelle || firstMandataire.surface || '';
+                const telephoneValue = firstMandataire.telephone || firstMandataire.telephon2 || p.telephon2 || '';
+
                 const mandatariesHtml = (p.mandataries || []).map(m => `
                 <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
                     <div class='flex justify-between items-start mb-2'>
@@ -928,7 +932,11 @@ window.app = {
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) + ' m²' : '--'}</span>
+                            <span class="font-bold text-lg text-navy">${superficieValue ? parseFloat(superficieValue).toFixed(2) + ' m²' : '--'}</span>
+                        </div>
+                        <div class="bg-white p-2 rounded border border-slate-200">
+                            <span class="block text-slate-400 text-xs mb-1">Téléphone</span>
+                            <span class="font-medium text-slate-800">${telephoneValue || '--'}</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
