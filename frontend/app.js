@@ -131,10 +131,10 @@ window.app = {
             if (e.error && e.error.message) {
                 // Suppress common tile loading errors (network issues, rate limiting)
                 const suppressedErrors = ['Failed to fetch', 'tile', 'NetworkError', 'AbortError'];
-                const shouldSuppress = suppressedErrors.some(err => 
+                const shouldSuppress = suppressedErrors.some(err =>
                     e.error.message.includes(err) || e.error.toString().includes(err)
                 );
-                
+
                 if (!shouldSuppress) {
                     console.error('Map error:', e.error);
                 }
@@ -147,21 +147,25 @@ window.app = {
             if (!this.map.getSource('parcels-source')) {
                 this.addSourcesAndLayers();
             }
-            
+
             // Setup lighting after map is fully loaded
             this.setupLighting();
-            
+
             // Fix iframe sizing - resize map after load
             this.handleResize();
         });
 
         // Reapply lighting when style changes (basemap switch)
         this.map.on('style.load', () => {
+            console.log('Style loaded, current style:', this.currentStyle);
             // Re-add sources and layers after style change
             if (!this.map.getSource('parcels-source')) {
+                console.log('Re-adding parcels source and layers');
                 this.addSourcesAndLayers();
+            } else {
+                console.log('Parcels source already exists');
             }
-            
+
             // Reapply lighting
             this.updateSunPosition();
         });
@@ -245,6 +249,7 @@ window.app = {
     },
 
     switchBasemap(styleName) {
+        console.log('switchBasemap called with:', styleName, 'current:', this.currentStyle);
         if (this.currentStyle === styleName) return;
         this.currentStyle = styleName;
         this.map.setStyle(this.styles[styleName]);
@@ -463,11 +468,16 @@ window.app = {
     },
 
     addSourcesAndLayers() {
+        console.log('addSourcesAndLayers called');
         // Safety check: if source already exists, do nothing
-        if (this.map.getSource('parcels-source')) return;
+        if (this.map.getSource('parcels-source')) {
+            console.log('Source already exists, skipping');
+            return;
+        }
 
         // Backend API URL from config
         const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
+        console.log('Adding parcels source with URL:', BACKEND_URL);
 
         // Add Vector Tile Source from our Backend
         this.map.addSource('parcels-source', {
@@ -487,6 +497,7 @@ window.app = {
             // Increase tolerance to reduce features at lower zooms
             tolerance: 3.5
         });
+        console.log('Parcels source added successfully');
 
         // Determine a safe insertion point so layers are visible above basemap but below labels
         let beforeLayerId = null;
@@ -494,8 +505,9 @@ window.app = {
             const styleLayers = this.map.getStyle().layers || [];
             const symbolLayer = styleLayers.find(l => l.type === 'symbol' || (l.layout && (l.layout['text-field'] || l.layout['icon-image'])));
             if (symbolLayer) beforeLayerId = symbolLayer.id;
+            console.log('beforeLayerId:', beforeLayerId);
         } catch (e) {
-            // ignore - getStyle may not be ready
+            console.warn('Could not determine beforeLayerId:', e);
         }
 
         const parcels3dLayer = {
@@ -517,6 +529,7 @@ window.app = {
         };
 
         if (beforeLayerId) this.map.addLayer(parcels3dLayer, beforeLayerId); else this.map.addLayer(parcels3dLayer);
+        console.log('parcels-3d layer added');
 
 
 
@@ -534,6 +547,7 @@ window.app = {
         };
 
         if (beforeLayerId) this.map.addLayer(highlightLayer, beforeLayerId); else this.map.addLayer(highlightLayer);
+        console.log('parcels-highlight layer added');
     },
 
     setupInteractions() {
