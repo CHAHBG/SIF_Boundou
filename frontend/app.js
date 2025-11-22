@@ -506,6 +506,7 @@ window.app = {
             const symbolLayer = styleLayers.find(l => l.type === 'symbol' || (l.layout && (l.layout['text-field'] || l.layout['icon-image'])));
             if (symbolLayer) beforeLayerId = symbolLayer.id;
             console.log('beforeLayerId:', beforeLayerId);
+            console.log('Total style layers:', styleLayers.length);
         } catch (e) {
             console.warn('Could not determine beforeLayerId:', e);
         }
@@ -528,8 +529,14 @@ window.app = {
             }
         };
 
-        if (beforeLayerId) this.map.addLayer(parcels3dLayer, beforeLayerId); else this.map.addLayer(parcels3dLayer);
-        console.log('parcels-3d layer added');
+        // Add layer: if beforeLayerId exists, insert before it; otherwise add on top
+        if (beforeLayerId) {
+            this.map.addLayer(parcels3dLayer, beforeLayerId);
+            console.log('parcels-3d layer added before', beforeLayerId);
+        } else {
+            this.map.addLayer(parcels3dLayer);
+            console.log('parcels-3d layer added on top (no symbol layer found)');
+        }
 
 
 
@@ -546,8 +553,14 @@ window.app = {
             'filter': ['==', 'id', ''] // Initially empty
         };
 
-        if (beforeLayerId) this.map.addLayer(highlightLayer, beforeLayerId); else this.map.addLayer(highlightLayer);
-        console.log('parcels-highlight layer added');
+        // Add highlight layer on top as well
+        if (beforeLayerId) {
+            this.map.addLayer(highlightLayer, beforeLayerId);
+            console.log('parcels-highlight layer added before', beforeLayerId);
+        } else {
+            this.map.addLayer(highlightLayer);
+            console.log('parcels-highlight layer added on top');
+        }
     },
 
     setupInteractions() {
