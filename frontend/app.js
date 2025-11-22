@@ -4,6 +4,8 @@ window.app = {
     is3D: true,
     colorByType: false,
     lastClickLngLat: null,
+    lightingInterval: null,
+    resizeTimeout: null,
     visibleLayers: {
         'individual': true,
         'collective': true,
@@ -127,19 +129,52 @@ window.app = {
         // Handle tile loading errors with retry
         this.map.on('error', (e) => {
             if (e.error && e.error.message) {
-                console.warn('Map error:', e.error.message);
-                // Don't show alert for tile errors, they will retry automatically
-                if (!e.error.message.includes('tile')) {
+                // Suppress common tile loading errors (network issues, rate limiting)
+                const suppressedErrors = ['Failed to fetch', 'tile', 'NetworkError', 'AbortError'];
+                const shouldSuppress = suppressedErrors.some(err => 
+                    e.error.message.includes(err) || e.error.toString().includes(err)
+                );
+                
+                if (!shouldSuppress) {
                     console.error('Map error:', e.error);
                 }
             }
         });
 
         // Re-add layers when style changes
-        this.map.on('styledata', () => {
+        this.map.on('load', () => {
             // Check if source exists to prevent "Source already exists" error
             if (!this.map.getSource('parcels-source')) {
                 this.addSourcesAndLayers();
+            }
+            
+            // Setup lighting after map is fully loaded
+            this.setupLighting();
+            
+            // Fix iframe sizing - resize map after load
+            this.handleResize();
+        });
+
+        // Reapply lighting when style changes (basemap switch)
+        this.map.on('style.load', () => {
+            // Re-add sources and layers after style change
+            if (!this.map.getSource('parcels-source')) {
+                this.addSourcesAndLayers();
+            }
+            
+            // Reapply lighting
+            this.updateSunPosition();
+        });
+
+        // Handle window resize events (for iframe embedding)
+        window.addEventListener('resize', () => {
+            this.handleResize();
+        });
+
+        // Handle postMessage from parent window (for iframe communication)
+        window.addEventListener('message', (event) => {
+            if (event.data === 'resize' || event.data.type === 'resize') {
+                this.handleResize();
             }
         });
 
@@ -220,6 +255,93 @@ window.app = {
         if (indicator) {
             indicator.textContent = this.is3D ? 'Vue 3D Active' : 'Vue 2D Active';
         }
+    },
+
+    setupLighting() {
+        // Prevent multiple intervals
+        if (this.lightingInterval) {
+            return;
+        }
+
+        // Initial update
+        this.updateSunPosition();
+
+        // Update every minute
+        this.lightingInterval = setInterval(() => {
+            this.updateSunPosition();
+        }, 60000);
+    },
+
+    updateSunPosition() {
+        // Only update if map is loaded and style is ready
+        if (!this.map || !this.map.isStyleLoaded()) {
+            return;
+        }
+
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const time = hours + minutes / 60;
+
+        // Simple solar position simulation
+        // Sunrise at 6:00, Sunset at 18:00
+        // Azimuth: 90 (East) at 6:00 -> 180 (South) at 12:00 -> 270 (West) at 18:00
+        // Altitude: 0 at 6:00 -> 90 at 12:00 -> 0 at 18:00
+
+        let azimuth, altitude, intensity, color, skyColor;
+
+        if (time >= 6 && time <= 18) {
+            // DAY MODE
+            const dayProgress = (time - 6) / 12; // 0 to 1
+            azimuth = 90 + (dayProgress * 180);
+            altitude = Math.sin(dayProgress * Math.PI) * 90;
+
+            // Intensity peaks at noon
+            intensity = 0.6 + (Math.sin(dayProgress * Math.PI) * 0.4); // 0.6 to 1.0
+
+            // Color warms up at sunrise/sunset
+            if (time < 8 || time > 16) {
+                color = '#fcd34d'; // Warm/Orange
+                skyColor = 'linear-gradient(to bottom, #87ceeb, #fdba74)'; // Blue to Orange
+            } else {
+                color = '#ffffff'; // White
+                skyColor = '#87ceeb'; // Light Blue
+            }
+        } else {
+            // NIGHT MODE
+            // Moon position (simplified)
+            const nightProgress = (time >= 18 ? time - 18 : time + 6) / 12;
+            azimuth = 270 + (nightProgress * 180);
+            altitude = Math.sin(nightProgress * Math.PI) * 45; // Moon lower than sun
+
+            intensity = 0.25; // Low intensity
+            color = '#b0c4de'; // Cool Blue/Silver
+            skyColor = '#0f172a'; // Dark Navy
+        }
+
+        // Update Map Light
+        if (this.map && this.map.isStyleLoaded()) {
+            this.map.setLight({
+                anchor: 'map',
+                position: [1.5, azimuth, altitude],
+                color: color,
+                intensity: intensity
+            });
+        }
+    },
+
+    handleResize() {
+        // Debounce resize calls to prevent excessive updates
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+        }
+
+        this.resizeTimeout = setTimeout(() => {
+            // Resize map to fit container (fixes iframe sizing issues)
+            if (this.map) {
+                this.map.resize();
+            }
+        }, 100);
     },
 
     toggle3D() {
