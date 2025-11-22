@@ -283,47 +283,51 @@ window.app = {
         const minutes = now.getMinutes();
         const time = hours + minutes / 60;
 
-        // Simple solar position simulation
+        // Enhanced solar position simulation with realistic shadows
         // Sunrise at 6:00, Sunset at 18:00
         // Azimuth: 90 (East) at 6:00 -> 180 (South) at 12:00 -> 270 (West) at 18:00
         // Altitude: 0 at 6:00 -> 90 at 12:00 -> 0 at 18:00
 
-        let azimuth, altitude, intensity, color, skyColor;
+        let azimuth, altitude, intensity, color;
 
         if (time >= 6 && time <= 18) {
             // DAY MODE
             const dayProgress = (time - 6) / 12; // 0 to 1
             azimuth = 90 + (dayProgress * 180);
-            altitude = Math.sin(dayProgress * Math.PI) * 90;
+            // More realistic altitude curve - sun doesn't go straight overhead
+            altitude = Math.sin(dayProgress * Math.PI) * 70; // Max 70 degrees
 
-            // Intensity peaks at noon
-            intensity = 0.6 + (Math.sin(dayProgress * Math.PI) * 0.4); // 0.6 to 1.0
+            // Intensity peaks at noon with more dramatic variation
+            intensity = 0.5 + (Math.sin(dayProgress * Math.PI) * 0.5); // 0.5 to 1.0
 
-            // Color warms up at sunrise/sunset
-            if (time < 8 || time > 16) {
-                color = '#fcd34d'; // Warm/Orange
-                skyColor = 'linear-gradient(to bottom, #87ceeb, #fdba74)'; // Blue to Orange
+            // Color transitions smoothly through the day
+            if (time < 7) {
+                color = '#ffa500'; // Orange at dawn
+            } else if (time < 9) {
+                color = '#ffd700'; // Golden morning
+            } else if (time < 16) {
+                color = '#ffffff'; // White midday
+            } else if (time < 17.5) {
+                color = '#ffd700'; // Golden evening
             } else {
-                color = '#ffffff'; // White
-                skyColor = '#87ceeb'; // Light Blue
+                color = '#ff8c00'; // Orange at dusk
             }
         } else {
             // NIGHT MODE
             // Moon position (simplified)
             const nightProgress = (time >= 18 ? time - 18 : time + 6) / 12;
             azimuth = 270 + (nightProgress * 180);
-            altitude = Math.sin(nightProgress * Math.PI) * 45; // Moon lower than sun
+            altitude = Math.sin(nightProgress * Math.PI) * 50; // Moon arc
 
-            intensity = 0.25; // Low intensity
+            intensity = 0.15; // Very low intensity for moonlight
             color = '#b0c4de'; // Cool Blue/Silver
-            skyColor = '#0f172a'; // Dark Navy
         }
 
-        // Update Map Light
+        // Update Map Light with enhanced shadow settings
         if (this.map && this.map.isStyleLoaded()) {
             this.map.setLight({
-                anchor: 'map',
-                position: [1.5, azimuth, altitude],
+                anchor: 'viewport',
+                position: [1.15, azimuth, altitude],
                 color: color,
                 intensity: intensity
             });
@@ -824,7 +828,7 @@ window.app = {
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${p.superficie_reelle ? parseFloat(p.superficie_reelle).toFixed(2) : (p.surface || 0)} m²</span>
+                            <span class="font-bold text-lg text-navy">${parseFloat(p.superficie_reelle || p.surface || 0).toFixed(2)} m²</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
@@ -859,12 +863,21 @@ window.app = {
                 </div>
             `;
             } else if (p.type === 'collective') {
+                // Get first mandataire for display
+                const firstMandataire = (p.mandataries || [])[0] || {};
+                const mandataireName = `${firstMandataire.prenom || ''} ${firstMandataire.nom || ''}`.trim() || 'Groupement / Collectif';
+                
                 const mandatariesHtml = (p.mandataries || []).map(m => `
                 <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
                     <div class='flex justify-between items-start mb-2'>
                         <span class='font-semibold text-slate-700'>${m.prenom || ''} ${m.nom || ''}</span>
                         <span class='text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded'>${m.typ_per || 'Mandataire'}</span>
                     </div>
+                    ${m.photo_rec_url || m.photo_ver_url ? `
+                    <div class='grid grid-cols-2 gap-2 mb-3'>
+                        ${m.photo_rec_url ? `<div><img src='${m.photo_rec_url}' alt='CNI Recto' class='w-full h-32 object-cover rounded border border-slate-300 shadow-sm' /></div>` : ''}
+                        ${m.photo_ver_url ? `<div><img src='${m.photo_ver_url}' alt='CNI Verso' class='w-full h-32 object-cover rounded border border-slate-300 shadow-sm' /></div>` : ''}
+                    </div>` : ''}
                     <div class='grid grid-cols-2 gap-1 text-xs text-slate-600'>
                         <div><span class='text-slate-400'>Sexe:</span> ${m.sexe || '--'}</div>
                         <div><span class='text-slate-400'>Tél:</span> ${m.telephone || '--'}</div>
@@ -897,10 +910,15 @@ window.app = {
 
                 contentArea.innerHTML = `
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="users" class="w-4 h-4"></i> Parcelle Collective
+                    <i data-lucide="users" class="w-4 h-4"></i> Mandataire Principal
                 </h3>
                 <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
-                    <p class="text-lg font-semibold text-slate-800 mb-3">Groupement / Collectif</p>
+                    <p class="text-lg font-semibold text-slate-800 mb-3">${mandataireName}</p>
+                    ${firstMandataire.photo_rec_url || firstMandataire.photo_ver_url ? `
+                    <div class='grid grid-cols-2 gap-3 mb-3'>
+                        ${firstMandataire.photo_rec_url ? `<div><img src='${firstMandataire.photo_rec_url}' alt='CNI Recto' class='w-full h-40 object-cover rounded-lg border-2 border-slate-300 shadow-md' /></div>` : ''}
+                        ${firstMandataire.photo_ver_url ? `<div><img src='${firstMandataire.photo_ver_url}' alt='CNI Verso' class='w-full h-40 object-cover rounded-lg border-2 border-slate-300 shadow-md' /></div>` : ''}
+                    </div>` : ''}
                     <div class="grid grid-cols-2 gap-3 text-sm">
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Nombre d'affectataires</span>
@@ -908,7 +926,7 @@ window.app = {
                         </div>
                         <div class="bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${p.superficie_reelle ? parseFloat(p.superficie_reelle).toFixed(2) : (p.surface || 0)} m²</span>
+                            <span class="font-bold text-lg text-navy">${parseFloat(p.superficie_reelle || p.surface || 0).toFixed(2)} m²</span>
                         </div>
                         <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
                             <span class="block text-slate-400 text-xs mb-1">Vocation</span>
