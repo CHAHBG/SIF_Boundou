@@ -488,7 +488,17 @@ window.app = {
             tolerance: 3.5
         });
 
-        this.map.addLayer({
+        // Determine a safe insertion point so layers are visible above basemap but below labels
+        let beforeLayerId = null;
+        try {
+            const styleLayers = this.map.getStyle().layers || [];
+            const symbolLayer = styleLayers.find(l => l.type === 'symbol' || (l.layout && (l.layout['text-field'] || l.layout['icon-image'])));
+            if (symbolLayer) beforeLayerId = symbolLayer.id;
+        } catch (e) {
+            // ignore - getStyle may not be ready
+        }
+
+        const parcels3dLayer = {
             'id': 'parcels-3d',
             'type': 'fill-extrusion',
             'source': 'parcels-source',
@@ -504,12 +514,14 @@ window.app = {
                 'fill-extrusion-base': 0,
                 'fill-extrusion-opacity': 0.8
             }
-        });
+        };
+
+        if (beforeLayerId) this.map.addLayer(parcels3dLayer, beforeLayerId); else this.map.addLayer(parcels3dLayer);
 
 
 
         // 3. Highlight Layer (for hover/selection)
-        this.map.addLayer({
+        const highlightLayer = {
             'id': 'parcels-highlight',
             'type': 'line',
             'source': 'parcels-source',
@@ -519,7 +531,9 @@ window.app = {
                 'line-width': 3
             },
             'filter': ['==', 'id', ''] // Initially empty
-        });
+        };
+
+        if (beforeLayerId) this.map.addLayer(highlightLayer, beforeLayerId); else this.map.addLayer(highlightLayer);
     },
 
     setupInteractions() {
