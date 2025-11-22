@@ -325,7 +325,7 @@ window.app = {
             this.map.setPaintProperty('parcels-3d', 'fill-extrusion-height', [
                 'case',
                 ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
-                4,
+                ['+', 10, ['%', ['to-number', ['get', 'id']], 21]],
                 0
             ]);
         } else {
@@ -372,7 +372,7 @@ window.app = {
                 'fill-extrusion-height': [
                     'case',
                     ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
-                    4, // 4 meters height for habitat
+                    ['+', 10, ['%', ['to-number', ['get', 'id']], 21]], // 10-30m height for habitat
                     0  // 0 for others
                 ],
                 'fill-extrusion-base': 0,
