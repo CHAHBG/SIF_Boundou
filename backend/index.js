@@ -297,8 +297,10 @@ app.get('/api/parcels/:id', async (req, res) => {
         arrondissement: row.arrondissement_senegal,
         commune: row.commune_senegal,
         village: row.village,
-        vocation: row.vocation,
-        surface: row.superficie,
+        // Always provide vocation and superficie fields at top level
+        vocation: row.vocation || (row.details && row.details.vocation) || '',
+        superficie_reelle: (row.details && row.details.superficie_reelle) || row.superficie || '',
+        surface: row.superficie || (row.details && row.details.superficie_reelle) || '',
         centroid: {
           type: 'Point',
           coordinates: row.centroid_coords
