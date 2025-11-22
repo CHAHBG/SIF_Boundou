@@ -65,7 +65,7 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-    
+
     // Add cache headers for faster tile loading
     res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400'); // Cache for 1 hour, serve stale for 24h
     res.setHeader('Content-Type', 'application/x-protobuf');
@@ -73,7 +73,7 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
 
     // Optimized query with spatial indexing and simplification at lower zoom levels
     const simplification = z < 14 ? 10 : z < 16 ? 5 : 0; // Simplify geometries at lower zoom
-    
+
     const query = `
       WITH bounds AS (
         SELECT ST_TileEnvelope($1::integer, $2::integer, $3::integer) AS geom
@@ -90,10 +90,10 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
             ELSE 'unknown'
           END AS type,
           ST_AsMVTGeom(
-            ${simplification > 0 
-              ? `ST_Simplify(ST_Transform(p.geometry, 3857), ${simplification})`
-              : 'ST_Transform(p.geometry, 3857)'
-            },
+            ${simplification > 0
+        ? `ST_Simplify(ST_Transform(p.geometry, 3857), ${simplification})`
+        : 'ST_Transform(p.geometry, 3857)'
+      },
             bounds.geom,
             4096,
             64,
@@ -209,7 +209,6 @@ app.get('/api/parcels/:id', async (req, res) => {
             'prenom', i.prenom,
             'nom', i.nom,
             'telephone', i.telephone,
-            'telephon2', i.telephon2,
             'sexe', i.sexe,
             'date_naiss', i.date_naiss,
             'num_piece', i.num_piece,
@@ -229,14 +228,12 @@ app.get('/api/parcels/:id', async (req, res) => {
             'superficie_reelle', c.sup_reelle,
             'type_usag', c.type_usag,
             'nom_groupement', 'Groupement',
-            'telephon2', c.telephon2,
             'mandataries', COALESCE((
               SELECT json_agg(json_build_object(
                 'prenom', m.prenom,
                 'nom', m.nom,
                 'sexe', m.sexe,
                 'telephone', m.contact,
-                'telephon2', m.telephon2,
                 'typ_per', m.typ_per,
                 'date_naiss', m.date_naiss,
                 'lieu_naiss', m.lieu_naiss,
@@ -261,7 +258,6 @@ app.get('/api/parcels/:id', async (req, res) => {
                 'date_naiss', b.date_naiss,
                 'type_piece', b.type_piece,
                 'num_piece', b.num_piece,
-                'telephon2', b.telephon2,
                 'photo_rec_url', b.photo_rec_url,
                 'photo_ver_url', b.photo_ver_url,
                 'signature', b.signature
