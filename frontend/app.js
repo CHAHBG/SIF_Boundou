@@ -150,52 +150,32 @@ window.app = {
 
             // Setup lighting after map is fully loaded
             this.setupLighting();
-
-            // Fix iframe sizing - resize map after load
-            this.handleResize();
-        });
-
-        // Reapply lighting when style changes (basemap switch)
-        this.map.on('style.load', () => {
-            console.log('Style loaded, current style:', this.currentStyle);
-            // Re-add sources and layers after style change
-            if (!this.map.getSource('parcels-source')) {
-                console.log('Re-adding parcels source and layers');
-                this.addSourcesAndLayers();
-            } else {
-                console.log('Parcels source already exists');
-            }
-
-            // Reapply lighting
-            this.updateSunPosition();
-        });
-
-        // Handle window resize events (for iframe embedding)
-        window.addEventListener('resize', () => {
-            this.handleResize();
-        });
-
-        // Handle postMessage from parent window (for iframe communication)
-        window.addEventListener('message', (event) => {
-            if (event.data === 'resize' || event.data.type === 'resize') {
+            window.addEventListener('resize', () => {
                 this.handleResize();
-            }
+            });
+
+            // Handle postMessage from parent window (for iframe communication)
+            window.addEventListener('message', (event) => {
+                if (event.data === 'resize' || event.data.type === 'resize') {
+                    this.handleResize();
+                }
+            });
+
+            this.setupSearch();
+            this.updateLegend();
+            this.updateViewModeIndicator();
+            lucide.createIcons();
+
+            // Auto-hide rotation tip after 8 seconds
+            setTimeout(() => {
+                const tip = document.getElementById('rotationTip');
+                if (tip) {
+                    tip.style.transition = 'opacity 0.5s';
+                    tip.style.opacity = '0';
+                    setTimeout(() => tip.classList.add('hidden'), 500);
+                }
+            }, 8000);
         });
-
-        this.setupSearch();
-        this.updateLegend();
-        this.updateViewModeIndicator();
-        lucide.createIcons();
-
-        // Auto-hide rotation tip after 8 seconds
-        setTimeout(() => {
-            const tip = document.getElementById('rotationTip');
-            if (tip) {
-                tip.style.transition = 'opacity 0.5s';
-                tip.style.opacity = '0';
-                setTimeout(() => tip.classList.add('hidden'), 500);
-            }
-        }, 8000);
     },
 
     updateLegend() {
@@ -647,7 +627,43 @@ window.app = {
                     });
             }, 400); // Increased to 400ms for better performance
         });
+    },
 
+    renderSidebar(results) {
+        const list = document.getElementById('parcelList');
+        list.innerHTML = '';
+
+        if (results.length === 0) {
+            list.innerHTML = `<div class="text-center p-8 text-slate-400 italic">Aucun résultat trouvé.</div>`;
+            return;
+        }
+
+        results.forEach(item => {
+            const color = this.colors[item.status] || this.colors['unknown'];
+
+            const card = document.createElement('div');
+            card.className = 'bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group';
+            card.onclick = () => {
+                this.fetchAndShowDetails(item.id);
+                document.getElementById('searchResultsDropdown').classList.add('hidden');
+            };
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">${item.num_parcel || item.id}</h3>
+                    <span class="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style="background-color: ${color}">${item.status || 'Inconnu'}</span>
+                </div>
+                <div class="text-sm text-slate-600 mb-1 flex items-center gap-2">
+                    <i data-lucide="user" class="w-3 h-3"></i> ${item.owner_name}
+                </div>
+                <div class="text-xs text-slate-400 flex justify-between mt-3 border-t pt-2 border-slate-100">
+                    <span>NICAD: ${item.nicad || '--'}</span>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+
+        lucide.createIcons();
     },
 
     async fetchWithRetry(url, retries = 3, delay = 1000) {
@@ -671,6 +687,44 @@ window.app = {
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
+    },
+
+    fetchAndShowDetails(id) {
+        // INSTANT PANEL: Show panel immediately with loading skeleton
+        this.openPanelWithLoading(id);
+
+        // Backend API URL from config
+        const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
+
+        // Fetch data in background and populate when ready
+        this.fetchWithRetry(`${BACKEND_URL}/api/parcels/${id}`)
+            .then(feature => {
+                if (feature.error) {
+                    this.closePanel();
+                    alert('Erreur: ' + feature.error);
+                    return;
+                }
+
+                // Fly to location with optimized animation (non-blocking)
+                if (feature.geometry && feature.properties.centroid) {
+                    const coords = feature.properties.centroid.coordinates;
+                    this.map.flyTo({
+                        center: coords,
+                        zoom: 19,
+                        pitch: 60,
+                        duration: 1200,
+                        essential: true
+                    });
+                }
+
+                // Populate panel with actual data
+                this.populatePanel(feature);
+            })
+            .catch(err => {
+                console.error('Error fetching details:', err);
+                this.closePanel();
+                alert('Impossible de charger les détails. Vérifiez votre connexion Internet et réessayez.\n\nErreur: ' + err.message);
+            });
     },
 
     openPanelWithLoading(id) {
@@ -937,12 +991,7 @@ window.app = {
         }); // End requestAnimationFrame
     },
 
-    closePanel() {
-        const panel = document.getElementById('detailPanel');
-        if (panel) {
-            panel.classList.add('translate-x-full');
-        }
-    },
+
 
     exportData() {
         alert("L'export complet n'est pas disponible en mode 3D (Performance). Veuillez contacter l'administrateur pour un export base de données.");
