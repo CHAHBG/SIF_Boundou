@@ -72,7 +72,7 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
     res.setHeader('Access-Control-Max-Age', '86400'); // CORS preflight cache
 
     // Optimized query with spatial indexing and simplification at lower zoom levels
-    const simplification = z < 14 ? 10 : z < 16 ? 5 : 0; // Simplify geometries at lower zoom
+    const simplification = z < 10 ? 50 : z < 12 ? 20 : z < 14 ? 10 : z < 16 ? 5 : 0; // Simplify geometries at lower zoom
 
     const query = `
       WITH bounds AS (
