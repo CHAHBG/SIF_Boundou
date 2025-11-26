@@ -54,6 +54,44 @@ window.app = {
                 "minzoom": 0,
                 "maxzoom": 22
             }]
+        },
+        'google-roadmap': {
+            "version": 8,
+            "sources": {
+                "google-roadmap": {
+                    "type": "raster",
+                    "tiles": ["https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"],
+                    "tileSize": 256,
+                    "attribution": "&copy; Google Maps",
+                    "maxzoom": 22
+                }
+            },
+            "layers": [{
+                "id": "google-roadmap",
+                "type": "raster",
+                "source": "google-roadmap",
+                "minzoom": 0,
+                "maxzoom": 22
+            }]
+        },
+        'google-satellite': {
+            "version": 8,
+            "sources": {
+                "google-satellite": {
+                    "type": "raster",
+                    "tiles": ["https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"],
+                    "tileSize": 256,
+                    "attribution": "&copy; Google Maps",
+                    "maxzoom": 22
+                }
+            },
+            "layers": [{
+                "id": "google-satellite",
+                "type": "raster",
+                "source": "google-satellite",
+                "minzoom": 0,
+                "maxzoom": 22
+            }]
         }
     },
     colors: {

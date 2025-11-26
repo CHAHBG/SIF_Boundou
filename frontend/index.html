@@ -13,6 +13,10 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
 
+    <!-- Google Maps API -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=[REDACTED-API-KEY]"></script>
+
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
@@ -24,7 +28,8 @@
 
     <style>
         /* Ensure proper sizing in iframes */
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -172,28 +177,7 @@
                     <i data-lucide="info" class="w-3 h-3 inline"></i> Utilisez les boutons à droite pour basculer la
                     vue.
                 </div>
-            </div>
-        </div>
-
-        <!-- Map Controls (Bottom Right) -->
-        <div class="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
-            <!-- Basemap Switcher -->
-            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden flex flex-col">
-                <button onclick="app.switchBasemap('osm')"
-                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Plan (OSM)">
-                    <i data-lucide="map" class="w-5 h-5 text-navy"></i>
-                </button>
-                <button onclick="app.switchBasemap('satellite')" class="p-2 hover:bg-slate-100 transition-colors"
-                    title="Satellite">
-                    <i data-lucide="satellite" class="w-5 h-5 text-navy"></i>
-                </button>
-            </div>
-
-            <!-- 3D/2D Toggle -->
-            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
-                <button onclick="app.toggle3D()" class="p-2 hover:bg-slate-100 transition-colors"
-                    title="Basculer 3D/2D">
-                    <i data-lucide="box" class="w-5 h-5 text-navy"></i>
+                <i data-lucide="box" class="w-5 h-5 text-navy"></i>
                 </button>
             </div>
 
