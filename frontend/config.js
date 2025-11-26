@@ -33,7 +33,7 @@ const config = {
 
     // Google Maps API Key - IMPORTANT: Replace with your own key
     // For production, use environment variables or a backend proxy
-    GOOGLE_MAPS_API_KEY: 'YOUR_API_KEY_HERE' // TODO: Replace this!
+    GOOGLE_MAPS_API_KEY: 'AIzaSyAjEKwaoCI7XuVrgQdvBqOdJOgEc94Xezc' // TODO: Replace this!
 };
 
 // Make config available globally
