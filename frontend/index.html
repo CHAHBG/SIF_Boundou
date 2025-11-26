@@ -10,6 +10,17 @@
     <link href="./dist/output.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+
+    <!-- Google Maps API -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=[REDACTED-API-KEY]&loading=async"></script>
+
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -137,26 +148,86 @@
                         class="w-2 h-2 rounded-full bg-green-marker"></span> En ligne</p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="w-4 h-4 rounded bg-blue-medium opacity-80 border border-white shadow-sm"></span>
-            <span>NICAD (Stage 2)</span>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="w-4 h-4 rounded bg-green-marker opacity-80 border border-white shadow-sm"></span>
-            <i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
-            <div>
-                <p class="font-semibold mb-1">Navigation 3D</p>
-                <ul class="text-xs space-y-1 opacity-90">
-                    <li>• <strong>Ctrl + Glisser</strong> : Rotation</li>
-                    <li>• <strong>Shift + Glisser</strong> : Inclinaison</li>
-                    <li>• <strong>Molette</strong> : Zoom</li>
-                </ul>
+    </header>
+
+    <!-- MAIN MAP AREA -->
+    <main class="flex-1 relative w-full h-[calc(100vh-64px)]">
+        <div id="map" class="w-full h-full"></div>
+
+        <!-- Legend Overlay (Bottom Left) -->
+        <div
+            class="absolute bottom-6 left-6 z-[1000] glass-panel p-4 rounded-lg shadow-lg border border-white/20 max-w-xs hidden md:block">
+            <h4 class="text-xs font-bold uppercase text-navy mb-2 tracking-wider">Légende</h4>
+            <div id="legendContent" class="space-y-2 text-sm">
+                <!-- Content populated by JS -->
             </div>
-            <button onclick="document.getElementById('rotationTip').classList.add('hidden')"
-                class="text-white/70 hover:text-white">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
         </div>
+
+        <!-- Map Controls (Bottom Right) -->
+        <div class="absolute bottom-6 right-6 z-[3000] flex flex-col gap-2">
+            <!-- Basemap Switcher -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden flex flex-col">
+                <button onclick="app.switchBasemap('osm')"
+                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Plan (OSM)">
+                    <i data-lucide="map" class="w-5 h-5 text-navy"></i>
+                </button>
+                <button onclick="app.switchBasemap('satellite')"
+                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Satellite (Esri)">
+                    <i data-lucide="satellite" class="w-5 h-5 text-navy"></i>
+                </button>
+                <button onclick="app.switchBasemap('google-roadmap')"
+                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Google Maps">
+                    <span class="font-bold text-xs text-navy">G</span>
+                </button>
+                <button onclick="app.switchBasemap('google-satellite')" class="p-2 hover:bg-slate-100 transition-colors"
+                    title="Google Satellite">
+                    <span class="font-bold text-xs text-navy">GS</span>
+                </button>
+            </div>
+
+            <!-- 3D/2D Toggle -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                <button onclick="app.toggle3D()" class="p-2 hover:bg-slate-100 transition-colors"
+                    title="Basculer 3D/2D">
+                    <i data-lucide="box" class="w-5 h-5 text-navy"></i>
+                </button>
+            </div>
+
+            <!-- Color By Type Toggle -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                <button onclick="app.toggleColorByType()" class="p-2 hover:bg-slate-100 transition-colors"
+                    title="Couleur par Type">
+                    <i data-lucide="palette" class="w-5 h-5 text-navy"></i>
+                </button>
+            </div>
+
+            <!-- Rotation Reset -->
+            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
+                <button onclick="app.resetBearing()" class="p-2 hover:bg-slate-100 transition-colors"
+                    title="Réinitialiser la rotation (Ctrl+Glisser pour tourner la carte)">
+                    <i data-lucide="compass" class="w-5 h-5 text-navy"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Rotation Help Tooltip -->
+        <div class="absolute top-20 left-4 z-[999] bg-navy/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg text-sm max-w-xs hidden md:block"
+            id="rotationTip">
+            <div class="flex items-start gap-2">
+                <i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+                <div>
+                    <p class="font-semibold mb-1">Navigation 3D</p>
+                    <ul class="text-xs space-y-1 opacity-90">
+                        <li>• <strong>Ctrl + Glisser</strong> : Rotation</li>
+                        <li>• <strong>Shift + Glisser</strong> : Inclinaison</li>
+                        <li>• <strong>Molette</strong> : Zoom</li>
+                    </ul>
+                </div>
+                <button onclick="document.getElementById('rotationTip').classList.add('hidden')"
+                    class="text-white/70 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Detail Panel (Slide-in from right) -->
@@ -235,10 +306,10 @@
                 </div>
             </div>
         </div>
-        </main>
+    </main>
 
-        <script src="config.js"></script>
-        <script src="app.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>
