@@ -502,7 +502,7 @@ window.app = {
             tiles: [
                 `${BACKEND_URL}/api/tiles/{z}/{x}/{y}`
             ],
-            minzoom: 10,
+            minzoom: 0,
             maxzoom: 22,
             scheme: 'xyz',
             tileSize: 512,
