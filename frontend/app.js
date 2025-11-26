@@ -108,8 +108,8 @@ window.app = {
         this.map = new maplibregl.Map({
             container: 'map',
             style: this.styles['osm'], // Default to OSM
-            center: [-13.669070, 13.732617], // Updated Center
-            zoom: 15,
+            center: window.APP_CONFIG.MAP_CENTER,
+            zoom: window.APP_CONFIG.MAP_ZOOM,
             pitch: 45, // Tilt for 3D effect
             bearing: -17.6,
             antialias: true,

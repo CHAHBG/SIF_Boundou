@@ -3,27 +3,27 @@ const config = {
     // Backend API URL - Update this after deploying backend to Render
     BACKEND_URL: (() => {
         const hostname = window.location.hostname;
-        
+
         // Local development
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
             return 'http://localhost:4000';
         }
-        
+
         // Production - Netlify
         if (hostname.includes('netlify.app') || hostname.includes('sifboundou')) {
             return 'https://sif-boundou.onrender.com';
         }
-        
+
         // Fallback to production
         return 'https://sif-boundou.onrender.com';
     })(),
 
     // Map settings
-    MAP_CENTER: [-13.669070, 13.732617],
-    MAP_ZOOM: 15,
+    MAP_CENTER: [-12.315, 13.730], // Centered between Bakel and Kedougou
+    MAP_ZOOM: 8.5,
     MAP_PITCH: 45,
     MAP_BEARING: -17.6,
-    
+
     // Performance settings
     TILE_CACHE_TIME: 3600, // 1 hour in seconds
     SEARCH_DEBOUNCE: 400, // milliseconds
