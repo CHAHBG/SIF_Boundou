@@ -116,7 +116,7 @@ window.app = {
             dragRotate: true, // Enable rotation with Ctrl+drag or right-click drag
             touchPitch: true, // Enable pitch on touch devices
             maxPitch: 85, // Allow steeper angles
-            minZoom: 10, // Prevent zooming out too far
+            minZoom: 0, // Allow full zoom out
             maxZoom: 22 // Allow very close zoom
         });
 
