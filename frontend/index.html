@@ -8,19 +8,6 @@
 
     <!-- Local Tailwind CSS -->
     <link href="./dist/output.css" rel="stylesheet">
-
-    <!-- MapLibre GL JS -->
-    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
-
-    <!-- Google Maps API -->
-    <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=[REDACTED-API-KEY]"></script>
-
-    <!-- SheetJS for Excel Export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-
-    <!-- Google Fonts (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Lucide Icons -->
@@ -150,123 +137,108 @@
                         class="w-2 h-2 rounded-full bg-green-marker"></span> En ligne</p>
             </div>
         </div>
-    </header>
+        <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded bg-blue-medium opacity-80 border border-white shadow-sm"></span>
+            <span>NICAD (Stage 2)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded bg-green-marker opacity-80 border border-white shadow-sm"></span>
+            <i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+            <div>
+                <p class="font-semibold mb-1">Navigation 3D</p>
+                <ul class="text-xs space-y-1 opacity-90">
+                    <li>• <strong>Ctrl + Glisser</strong> : Rotation</li>
+                    <li>• <strong>Shift + Glisser</strong> : Inclinaison</li>
+                    <li>• <strong>Molette</strong> : Zoom</li>
+                </ul>
+            </div>
+            <button onclick="document.getElementById('rotationTip').classList.add('hidden')"
+                class="text-white/70 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        </div>
 
-    <!-- MAIN MAP AREA -->
-    <main class="flex-1 relative w-full h-[calc(100vh-64px)]">
-        <div id="map" class="w-full h-full"></div>
-
-        <!-- Legend Overlay (Bottom Left) -->
-        <div
-            class="absolute bottom-6 left-6 z-[1000] glass-panel p-4 rounded-lg shadow-lg border border-white/20 max-w-xs hidden md:block">
-            <h4 class="text-xs font-bold uppercase text-navy mb-2 tracking-wider">Légende</h4>
-            <div id="legendContent" class="space-y-2 text-sm">
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-gold opacity-80 border border-white shadow-sm"></span>
-                    <span>Enquête (Stage 1)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-blue-medium opacity-80 border border-white shadow-sm"></span>
-                    <span>NICAD (Stage 2)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-4 h-4 rounded bg-green-marker opacity-80 border border-white shadow-sm"></span>
-                    <i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
-                    <div>
-                        <p class="font-semibold mb-1">Navigation 3D</p>
-                        <ul class="text-xs space-y-1 opacity-90">
-                            <li>• <strong>Ctrl + Glisser</strong> : Rotation</li>
-                            <li>• <strong>Shift + Glisser</strong> : Inclinaison</li>
-                            <li>• <strong>Molette</strong> : Zoom</li>
-                        </ul>
-                    </div>
-                    <button onclick="document.getElementById('rotationTip').classList.add('hidden')"
-                        class="text-white/70 hover:text-white">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+        <!-- Detail Panel (Slide-in from right) -->
+        <div id="detailPanel"
+            class="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-[2000] transform translate-x-full transition-transform duration-300 overflow-y-auto mt-16 md:mt-0 md:h-[calc(100vh-64px)] md:top-16 border-l border-slate-200">
+            <!-- Panel Header -->
+            <div class="sticky top-0 bg-navy text-white p-4 z-10">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 id="panelTitle" class="text-xl font-bold">Détails de la Parcelle</h2>
+                    <button onclick="app.closePanel()"
+                        class="text-white hover:bg-white/20 p-2 rounded transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
+                <span id="panelStatus"
+                    class="text-xs font-bold px-3 py-1 rounded-full inline-block">Chargement...</span>
+
+                <!-- Workflow Progress -->
+                <div class="flex justify-between items-center mt-4 max-w-md">
+                    <div class="text-center">
+                        <div
+                            class="w-10 h-10 rounded-full bg-green-marker text-white flex items-center justify-center mb-1 shadow-sm">
+                            <i data-lucide="check" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-xs">Enquête</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-white/30 mx-2"></div>
+                    <div id="step2" class="text-center">
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
+                            <span class="text-xs font-bold">2</span>
+                        </div>
+                        <span class="text-xs">NICAD</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-white/30 mx-2"></div>
+                    <div id="step3" class="text-center">
+                        <div
+                            class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
+                            <span class="text-xs font-bold">3</span>
+                        </div>
+                        <span class="text-xs">Approuvé</span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Detail Panel (Slide-in from right) -->
-            <div id="detailPanel"
-                class="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-[2000] transform translate-x-full transition-transform duration-300 overflow-y-auto mt-16 md:mt-0 md:h-[calc(100vh-64px)] md:top-16 border-l border-slate-200">
-                <!-- Panel Header -->
-                <div class="sticky top-0 bg-navy text-white p-4 z-10">
-                    <div class="flex justify-between items-center mb-2">
-                        <h2 id="panelTitle" class="text-xl font-bold">Détails de la Parcelle</h2>
-                        <button onclick="app.closePanel()"
-                            class="text-white hover:bg-white/20 p-2 rounded transition-colors">
-                            <i data-lucide="x" class="w-6 h-6"></i>
-                        </button>
-                    </div>
-                    <span id="panelStatus"
-                        class="text-xs font-bold px-3 py-1 rounded-full inline-block">Chargement...</span>
-
-                    <!-- Workflow Progress -->
-                    <div class="flex justify-between items-center mt-4 max-w-md">
-                        <div class="text-center">
-                            <div
-                                class="w-10 h-10 rounded-full bg-green-marker text-white flex items-center justify-center mb-1 shadow-sm">
-                                <i data-lucide="check" class="w-5 h-5"></i>
-                            </div>
-                            <span class="text-xs">Enquête</span>
-                        </div>
-                        <div class="flex-1 h-1 bg-white/30 mx-2"></div>
-                        <div id="step2" class="text-center">
-                            <div
-                                class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
-                                <span class="text-xs font-bold">2</span>
-                            </div>
-                            <span class="text-xs">NICAD</span>
-                        </div>
-                        <div class="flex-1 h-1 bg-white/30 mx-2"></div>
-                        <div id="step3" class="text-center">
-                            <div
-                                class="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm">
-                                <span class="text-xs font-bold">3</span>
-                            </div>
-                            <span class="text-xs">Approuvé</span>
+            <!-- Panel Content -->
+            <div class="p-6 space-y-6">
+                <!-- Conflict Alert -->
+                <div id="conflictAlert" class="hidden bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <h4 class="font-bold text-red-800">Conflit Signalé</h4>
+                            <p id="panelConflictText" class="text-sm text-red-700 mt-1"></p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Panel Content -->
-                <div class="p-6 space-y-6">
-                    <!-- Conflict Alert -->
-                    <div id="conflictAlert" class="hidden bg-red-50 border-l-4 border-red-500 p-4 rounded">
-                        <div class="flex items-start gap-3">
-                            <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i>
-                            <div>
-                                <h4 class="font-bold text-red-800">Conflit Signalé</h4>
-                                <p id="panelConflictText" class="text-sm text-red-700 mt-1"></p>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Main Content Area -->
+                <div id="panelContentLeft" class="space-y-4">
+                    <!-- Content populated by JavaScript -->
+                </div>
 
-                    <!-- Main Content Area -->
-                    <div id="panelContentLeft" class="space-y-4">
-                        <!-- Content populated by JavaScript -->
+                <!-- Images Section -->
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-600 mb-2">Photo Recto</h4>
+                        <img id="panelPhotoRecto" src="https://placehold.co/400x300?text=Non+Disponible"
+                            alt="Photo Recto" class="w-full h-48 object-cover rounded-lg border border-slate-200">
                     </div>
-
-                    <!-- Images Section -->
-                    <div class="grid grid-cols-2 gap-4 mt-6">
-                        <div>
-                            <h4 class="text-sm font-semibold text-slate-600 mb-2">Photo Recto</h4>
-                            <img id="panelPhotoRecto" src="https://placehold.co/400x300?text=Non+Disponible"
-                                alt="Photo Recto" class="w-full h-48 object-cover rounded-lg border border-slate-200">
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-semibold text-slate-600 mb-2">Photo Verso</h4>
-                            <img id="panelPhotoVerso" src="https://placehold.co/400x300?text=Non+Disponible"
-                                alt="Photo Verso" class="w-full h-48 object-cover rounded-lg border border-slate-200">
-                        </div>
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-600 mb-2">Photo Verso</h4>
+                        <img id="panelPhotoVerso" src="https://placehold.co/400x300?text=Non+Disponible"
+                            alt="Photo Verso" class="w-full h-48 object-cover rounded-lg border border-slate-200">
                     </div>
                 </div>
             </div>
-    </main>
+        </div>
+        </main>
 
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+        <script src="config.js"></script>
+        <script src="app.js"></script>
 </body>
 
 </html>
