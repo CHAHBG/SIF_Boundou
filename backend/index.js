@@ -183,10 +183,13 @@ app.get('/api/parcels/:id', async (req, res) => {
         p.num_parcel,
         p.status,
         ST_AsGeoJSON(p.geometry)::json AS geometry,
-        json_build_array(
-          ST_X(ST_Centroid(p.geometry)),
-          ST_Y(ST_Centroid(p.geometry))
-        ) AS centroid_coords,
+        json_build_object(
+          'type', 'Point',
+          'coordinates', json_build_array(
+            ST_X(ST_Transform(ST_Centroid(p.geometry), 4326)),
+            ST_Y(ST_Transform(ST_Centroid(p.geometry), 4326))
+          )
+        ) AS centroid,
         p.region_senegal,
         p.department_senegal,
         p.arrondissement_senegal,
