@@ -867,37 +867,36 @@ window.app = {
             if (p.type === 'individual') {
                 contentArea.innerHTML = `
                 <!-- Owner Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="user" class="w-4 h-4"></i>
                         <span>Propriétaire / Occupant</span>
                     </div>
-                    <p class="text-xl font-bold text-slate-800 mb-4">${p.prenom || ''} ${p.nom || ''}</p>
+                    <p class="text-xl font-bold text-slate-800 mb-5 px-1">${p.prenom || ''} ${p.nom || ''}</p>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="info-field">
                             <span class="info-label">Téléphone</span>
                             <span class="info-value">${p.telephone || p.telephon2 || '--'}</span>
-                            ${p.telephon2 ? `<span class='text-xs text-slate-400 mt-1'>Autre: ${p.telephon2}</span>` : ''}
                         </div>
                         <div class="info-field highlight">
                             <span class="info-label">Superficie</span>
-                            <span class="text-2xl font-bold text-emerald-600">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) : '--'}</span>
-                            <span class="text-xs text-slate-400">m²</span>
+                            <span class="stat-value">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) : '--'}</span>
+                            <span class="text-xs text-slate-500 font-medium ml-1">m²</span>
                         </div>
-                        <div class="info-field col-span-2">
-                            <span class="info-label">Vocation</span>
-                            <span class="info-value">${p.vocation || p.vocation_1 || '--'}</span>
-                        </div>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Vocation</span>
+                        <span class="info-value">${p.vocation || p.vocation_1 || '--'}</span>
                     </div>
                 </div>
 
                 <!-- Location Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="map-pin" class="w-4 h-4"></i>
                         <span>Localisation</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-4">
                         <div class="info-field">
                             <span class="info-label">Région</span>
                             <span class="info-value">${p.region || '--'}</span>
@@ -914,42 +913,42 @@ window.app = {
                             <span class="info-label">Commune</span>
                             <span class="info-value">${p.commune || '--'}</span>
                         </div>
-                        <div class="info-field col-span-2">
-                            <span class="info-label">Village</span>
-                            <span class="info-value">${p.village || '--'}</span>
-                        </div>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Village</span>
+                        <span class="info-value">${p.village || '--'}</span>
                     </div>
                 </div>
 
                 <!-- Technical Data Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="file-check" class="w-4 h-4"></i>
                         <span>Données Techniques</span>
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                            <span class="text-slate-500 text-sm">NICAD</span>
-                            <span class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm">${p.nicad || 'En attente'}</span>
+                    <div class="space-y-2">
+                        <div class="data-row">
+                            <span class="data-label">NICAD</span>
+                            <span class="data-value highlight">${p.nicad || 'En attente'}</span>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                            <span class="text-slate-500 text-sm">N° Délibération</span>
-                            <span class="font-medium text-slate-700">${p.n_deliberation || '--'}</span>
+                        <div class="data-row">
+                            <span class="data-label">N° Délibération</span>
+                            <span class="data-value">${p.n_deliberation || '--'}</span>
                         </div>
-                        <div class="flex justify-between items-center py-2">
-                            <span class="text-slate-500 text-sm">N° Approbation</span>
-                            <span class="font-medium text-slate-700">${p.n_approbation || '--'}</span>
+                        <div class="data-row">
+                            <span class="data-label">N° Approbation</span>
+                            <span class="data-value">${p.n_approbation || '--'}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Personal Details Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="id-card" class="w-4 h-4"></i>
                         <span>Détails Personnels</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-4">
                         <div class="info-field">
                             <span class="info-label">Sexe</span>
                             <span class="info-value">${p.sexe || '--'}</span>
@@ -958,14 +957,14 @@ window.app = {
                             <span class="info-label">Date de Naissance</span>
                             <span class="info-value">${p.date_naiss ? new Date(p.date_naiss).toLocaleDateString('fr-FR') : '--'}</span>
                         </div>
-                        <div class="info-field col-span-2">
-                            <span class="info-label">Numéro CNI</span>
-                            <span class="info-value font-mono">${p.num_piece || '--'}</span>
-                        </div>
-                        <div class="info-field col-span-2">
-                            <span class="info-label">Lieu de Naissance</span>
-                            <span class="info-value">${p.lieu_naiss || '--'}</span>
-                        </div>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Numéro CNI</span>
+                        <span class="info-value font-mono">${p.num_piece || '--'}</span>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Lieu de Naissance</span>
+                        <span class="info-value">${p.lieu_naiss || '--'}</span>
                     </div>
                 </div>
             `;
@@ -979,88 +978,88 @@ window.app = {
                 const telephoneValue = firstMandataire.telephone || firstMandataire.telephon2 || p.telephon2 || '';
 
                 const mandatariesHtml = (p.mandataries || []).map(m => `
-                <div class='bg-white p-4 rounded-xl border border-slate-200 mb-3 card-hover'>
-                    <div class='flex justify-between items-start mb-3'>
-                        <span class='font-bold text-slate-800'>${m.prenom || ''} ${m.nom || ''}</span>
-                        <span class='text-xs bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-full font-medium'>${m.typ_per || 'Mandataire'}</span>
+                <div class='bg-slate-50 p-5 rounded-xl border border-slate-200 mb-4'>
+                    <div class='flex justify-between items-start mb-4'>
+                        <span class='font-bold text-slate-800 text-base'>${m.prenom || ''} ${m.nom || ''}</span>
+                        <span class='text-xs bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1.5 rounded-full font-medium'>${m.typ_per || 'Mandataire'}</span>
                     </div>
                     ${m.photo_rec_url || m.photo_ver_url ? `
-                    <div class='grid grid-cols-2 gap-3 mb-3'>
+                    <div class='grid grid-cols-2 gap-4 mb-4'>
                         ${m.photo_rec_url ? `<div class="photo-card"><img src='${m.photo_rec_url}' alt='CNI Recto' /><div class="photo-label">Recto</div></div>` : ''}
                         ${m.photo_ver_url ? `<div class="photo-card"><img src='${m.photo_ver_url}' alt='CNI Verso' /><div class="photo-label">Verso</div></div>` : ''}
                     </div>` : ''}
-                    <div class='grid grid-cols-2 gap-2 text-sm text-slate-600'>
+                    <div class='grid grid-cols-2 gap-3'>
                         <div class="info-field"><span class='info-label'>Sexe</span><span class="info-value">${m.sexe || '--'}</span></div>
-                        <div class="info-field"><span class='info-label'>Tél</span><span class="info-value">${m.telephone || m.telephon2 || '--'}</span></div>
+                        <div class="info-field"><span class='info-label'>Téléphone</span><span class="info-value">${m.telephone || m.telephon2 || '--'}</span></div>
                         <div class="info-field"><span class='info-label'>Né(e) le</span><span class="info-value">${m.date_naiss ? new Date(m.date_naiss).toLocaleDateString('fr-FR') : '--'}</span></div>
                         <div class="info-field"><span class='info-label'>Lieu</span><span class="info-value">${m.lieu_naiss || '--'}</span></div>
-                        <div class='info-field col-span-2'><span class='info-label'>CNI</span><span class="info-value font-mono">${m.num_piece || '--'}</span></div>
                     </div>
+                    <div class='info-field mt-3'><span class='info-label'>N° CNI</span><span class="info-value font-mono">${m.num_piece || '--'}</span></div>
                 </div>
             `).join('');
 
                 const beneficiariesHtml = (p.beneficiaries || []).map((b, idx) => `
-                <div class='bg-white p-4 rounded-xl border border-slate-200 mb-3 card-hover'>
-                    <div class='flex justify-between items-start mb-2'>
-                        <span class='font-bold text-slate-800'><span class="text-indigo-500">${idx + 1}.</span> ${b.prenom || ''} ${b.nom || ''}</span>
-                        <span class='text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full'>${b.sexe || '--'}</span>
+                <div class='bg-slate-50 p-5 rounded-xl border border-slate-200 mb-4'>
+                    <div class='flex justify-between items-start mb-4'>
+                        <span class='font-bold text-slate-800 text-base'><span class="text-indigo-500">${idx + 1}.</span> ${b.prenom || ''} ${b.nom || ''}</span>
+                        <span class='text-xs bg-slate-200 text-slate-700 px-3 py-1.5 rounded-full font-medium'>${b.sexe || '--'}</span>
                     </div>
-                    <div class='grid grid-cols-2 gap-2 text-sm mb-3'>
+                    <div class='grid grid-cols-2 gap-3 mb-3'>
                         <div class="info-field"><span class='info-label'>Né(e)</span><span class="info-value">${b.date_naiss ? new Date(b.date_naiss).toLocaleDateString('fr-FR') : '--'}</span></div>
                         <div class="info-field"><span class='info-label'>Type Pièce</span><span class="info-value">${b.type_piece || '--'}</span></div>
-                        <div class='info-field col-span-2'><span class='info-label'>N° Pièce</span><span class="info-value font-mono">${b.num_piece || '--'}</span></div>
-                        ${b.telephon2 ? `<div class='info-field col-span-2'><span class='info-label'>Autre Tél</span><span class="info-value">${b.telephon2}</span></div>` : ''}
                     </div>
+                    <div class='info-field mb-3'><span class='info-label'>N° Pièce</span><span class="info-value font-mono">${b.num_piece || '--'}</span></div>
+                    ${b.telephon2 ? `<div class='info-field mb-3'><span class='info-label'>Autre Tél</span><span class="info-value">${b.telephon2}</span></div>` : ''}
                     ${b.photo_rec_url || b.photo_ver_url || b.signature ? `
-                    <div class='grid grid-cols-3 gap-2'>
-                        ${b.photo_rec_url ? `<div class="photo-card"><img src='${b.photo_rec_url}' alt='Pièce Recto' class="h-20" /></div>` : ''}
-                        ${b.photo_ver_url ? `<div class="photo-card"><img src='${b.photo_ver_url}' alt='Pièce Verso' class="h-20" /></div>` : ''}
-                        ${b.signature ? `<div class="photo-card"><img src='${b.signature}' alt='Signature' class="h-20" /></div>` : ''}
+                    <div class='grid grid-cols-3 gap-3'>
+                        ${b.photo_rec_url ? `<div class="photo-card"><img src='${b.photo_rec_url}' alt='Pièce Recto' style="height:80px" /></div>` : ''}
+                        ${b.photo_ver_url ? `<div class="photo-card"><img src='${b.photo_ver_url}' alt='Pièce Verso' style="height:80px" /></div>` : ''}
+                        ${b.signature ? `<div class="photo-card"><img src='${b.signature}' alt='Signature' style="height:80px" /></div>` : ''}
                     </div>` : ''}
                 </div>
             `).join('');
 
                 contentArea.innerHTML = `
                 <!-- Main Mandataire Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="users" class="w-4 h-4"></i>
                         <span>Mandataire Principal</span>
                     </div>
-                    <p class="text-xl font-bold text-slate-800 mb-4">${mandataireName}</p>
+                    <p class="text-xl font-bold text-slate-800 mb-5 px-1">${mandataireName}</p>
                     ${firstMandataire.photo_rec_url || firstMandataire.photo_ver_url ? `
-                    <div class='grid grid-cols-2 gap-4 mb-4'>
+                    <div class='grid grid-cols-2 gap-5 mb-5'>
                         ${firstMandataire.photo_rec_url ? `<div class="photo-card"><img src='${firstMandataire.photo_rec_url}' alt='CNI Recto' /><div class="photo-label">CNI Recto</div></div>` : ''}
                         ${firstMandataire.photo_ver_url ? `<div class="photo-card"><img src='${firstMandataire.photo_ver_url}' alt='CNI Verso' /><div class="photo-label">CNI Verso</div></div>` : ''}
                     </div>` : ''}
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="info-field highlight">
+                        <div class="info-field highlight" style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-color: #c7d2fe;">
                             <span class="info-label">Affectataires</span>
-                            <span class="text-2xl font-bold text-indigo-600">${p.nombre_affectata || (p.beneficiaries ? p.beneficiaries.length : '--')}</span>
+                            <span class="stat-value" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${p.nombre_affectata || (p.beneficiaries ? p.beneficiaries.length : '--')}</span>
                         </div>
                         <div class="info-field highlight">
                             <span class="info-label">Superficie</span>
-                            <span class="text-2xl font-bold text-emerald-600">${superficieValue ? parseFloat(superficieValue).toFixed(2) : '--'}</span>
-                            <span class="text-xs text-slate-400">m²</span>
+                            <span class="stat-value">${superficieValue ? parseFloat(superficieValue).toFixed(2) : '--'}</span>
+                            <span class="text-xs text-slate-500 font-medium ml-1">m²</span>
                         </div>
-                        <div class="info-field">
-                            <span class="info-label">Téléphone</span>
-                            <span class="info-value">${telephoneValue || '--'}</span>
-                        </div>
-                        <div class="info-field col-span-2">
-                            <span class="info-label">Vocation</span>
-                            <span class="info-value">${p.vocation || p.vocation_1 || '--'}</span>
-                        </div>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Téléphone</span>
+                        <span class="info-value">${telephoneValue || '--'}</span>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Vocation</span>
+                        <span class="info-value">${p.vocation || p.vocation_1 || '--'}</span>
                     </div>
                 </div>
 
                 <!-- Location Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="map-pin" class="w-4 h-4"></i>
                         <span>Localisation</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-4">
                         <div class="info-field">
                             <span class="info-label">Région</span>
                             <span class="info-value">${p.region || '--'}</span>
@@ -1077,56 +1076,56 @@ window.app = {
                             <span class="info-label">Commune</span>
                             <span class="info-value">${p.commune || '--'}</span>
                         </div>
-                        <div class="info-field col-span-2">
-                            <span class="info-label">Village</span>
-                            <span class="info-value">${p.village || '--'}</span>
-                        </div>
+                    </div>
+                    <div class="info-field mt-4">
+                        <span class="info-label">Village</span>
+                        <span class="info-value">${p.village || '--'}</span>
                     </div>
                 </div>
 
                 <!-- Technical Data Card -->
-                <div class="info-card card-hover">
+                <div class="info-card">
                     <div class="section-title">
                         <i data-lucide="file-check" class="w-4 h-4"></i>
                         <span>Données Techniques</span>
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                            <span class="text-slate-500 text-sm">NICAD</span>
-                            <span class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm">${p.nicad || 'En attente'}</span>
+                    <div class="space-y-2">
+                        <div class="data-row">
+                            <span class="data-label">NICAD</span>
+                            <span class="data-value highlight">${p.nicad || 'En attente'}</span>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                            <span class="text-slate-500 text-sm">N° Délibération</span>
-                            <span class="font-medium text-slate-700">${p.n_deliberation || '--'}</span>
+                        <div class="data-row">
+                            <span class="data-label">N° Délibération</span>
+                            <span class="data-value">${p.n_deliberation || '--'}</span>
                         </div>
-                        <div class="flex justify-between items-center py-2">
-                            <span class="text-slate-500 text-sm">N° Approbation</span>
-                            <span class="font-medium text-slate-700">${p.n_approbation || '--'}</span>
+                        <div class="data-row">
+                            <span class="data-label">N° Approbation</span>
+                            <span class="data-value">${p.n_approbation || '--'}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Mandataires Section -->
                 <div class="info-card">
-                    <div class="section-title mb-4">
+                    <div class="section-title">
                         <i data-lucide="user-check" class="w-4 h-4"></i>
                         <span>Mandataires</span>
-                        <span class="ml-auto bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">${(p.mandataries || []).length}</span>
+                        <span class="ml-auto bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full">${(p.mandataries || []).length}</span>
                     </div>
-                    <div class="max-h-72 overflow-y-auto custom-scroll pr-2">
-                        ${mandatariesHtml || '<p class="text-sm text-slate-400 italic text-center py-4">Aucun mandataire</p>'}
+                    <div class="max-h-96 overflow-y-auto custom-scroll">
+                        ${mandatariesHtml || '<p class="text-sm text-slate-400 italic text-center py-6">Aucun mandataire</p>'}
                     </div>
                 </div>
 
                 <!-- Beneficiaries Section -->
                 <div class="info-card">
-                    <div class="section-title mb-4">
+                    <div class="section-title">
                         <i data-lucide="users" class="w-4 h-4"></i>
                         <span>Affectataires / Bénéficiaires</span>
-                        <span class="ml-auto bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-full">${(p.beneficiaries || []).length}</span>
+                        <span class="ml-auto bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full">${(p.beneficiaries || []).length}</span>
                     </div>
-                    <div class="max-h-72 overflow-y-auto custom-scroll pr-2">
-                        ${beneficiariesHtml || '<p class="text-sm text-slate-400 italic text-center py-4">Aucun bénéficiaire</p>'}
+                    <div class="max-h-96 overflow-y-auto custom-scroll">
+                        ${beneficiariesHtml || '<p class="text-sm text-slate-400 italic text-center py-6">Aucun bénéficiaire</p>'}
                     </div>
                 </div>
             `;
