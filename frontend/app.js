@@ -812,36 +812,50 @@ window.app = {
             const p = feature.properties;
             document.getElementById('panelTitle').innerText = p.num_parcel || p.id;
 
-            // Status Badge
+            // Status Badge - Modern design
             const statusColor = this.colors[p.status] || this.colors['unknown'];
             const statusBadge = document.getElementById('panelStatus');
-            statusBadge.innerText = p.status || 'Inconnu';
-            statusBadge.style.backgroundColor = statusColor + '20';
-            statusBadge.style.color = statusColor;
+            const statusText = p.status || 'Inconnu';
+            statusBadge.innerText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+            
+            // Modern gradient status badges
+            if (p.status === 'approuvee' || p.status === 'Approved') {
+                statusBadge.className = 'status-badge bg-gradient-to-r from-emerald-400 to-green-500 text-white';
+            } else if (p.status === 'NICAD' || p.status === 'deliberee') {
+                statusBadge.className = 'status-badge bg-gradient-to-r from-blue-400 to-indigo-500 text-white';
+            } else if (p.status === 'enquetee') {
+                statusBadge.className = 'status-badge bg-gradient-to-r from-amber-400 to-orange-500 text-white';
+            } else {
+                statusBadge.className = 'status-badge bg-white/20 text-white';
+            }
 
-            // Workflow Visualizer - update the circles inside step2 and step3
+            // Workflow Visualizer - Modern design with new CSS classes
             const step2 = document.getElementById('step2');
             const step3 = document.getElementById('step3');
+            const connector1 = document.getElementById('connector1');
+            const connector2 = document.getElementById('connector2');
 
             if (step2) {
-                const step2Circle = step2.querySelector('div');
-                step2Circle.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
-                step2Circle.innerHTML = '<span class="text-xs font-bold">2</span>';
+                const step2Circle = step2.querySelector('.step-circle');
+                step2Circle.className = "step-circle inactive";
+                step2Circle.innerHTML = '<span>2</span>';
 
                 if (p.status === 'NICAD' || p.status === 'deliberee' || p.status === 'approuvee' || p.status === 'Approved') {
-                    step2Circle.className = "w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center mb-1 shadow-sm";
+                    step2Circle.className = "step-circle active-nicad";
                     step2Circle.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+                    if (connector1) connector1.classList.add('active');
                 }
             }
 
             if (step3) {
-                const step3Circle = step3.querySelector('div');
-                step3Circle.className = "w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center mb-1 shadow-sm transition-colors";
-                step3Circle.innerHTML = '<span class="text-xs font-bold">3</span>';
+                const step3Circle = step3.querySelector('.step-circle');
+                step3Circle.className = "step-circle inactive";
+                step3Circle.innerHTML = '<span>3</span>';
 
                 if (p.status === 'approuvee' || p.status === 'Approved') {
-                    step3Circle.className = "w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mb-1 shadow-sm";
+                    step3Circle.className = "step-circle active-approved";
                     step3Circle.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+                    if (connector2) connector2.classList.add('active');
                 }
             }
 
@@ -852,51 +866,107 @@ window.app = {
             contentArea.innerHTML = '';
             if (p.type === 'individual') {
                 contentArea.innerHTML = `
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="user" class="w-4 h-4"></i> Propriétaire / Occupant
-                </h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
-                    <p class="text-lg font-semibold text-slate-800">${p.prenom || ''} ${p.nom || ''}</p>
-                    <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
-                        <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Téléphone</span>
-                            <span class="font-medium text-slate-800">${p.telephone || p.telephon2 || '--'}</span>
-                            ${p.telephon2 ? `<span class='block text-xs text-slate-500 mt-1'>Autre: ${p.telephon2}</span>` : ''}
+                <!-- Owner Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <span>Propriétaire / Occupant</span>
+                    </div>
+                    <p class="text-xl font-bold text-slate-800 mb-4">${p.prenom || ''} ${p.nom || ''}</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="info-field">
+                            <span class="info-label">Téléphone</span>
+                            <span class="info-value">${p.telephone || p.telephon2 || '--'}</span>
+                            ${p.telephon2 ? `<span class='text-xs text-slate-400 mt-1'>Autre: ${p.telephon2}</span>` : ''}
                         </div>
-                        <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) + ' m²' : '--'}</span>
+                        <div class="info-field highlight">
+                            <span class="info-label">Superficie</span>
+                            <span class="text-2xl font-bold text-emerald-600">${(p.superficie_reelle || p.surface) ? parseFloat(p.superficie_reelle || p.surface).toFixed(2) : '--'}</span>
+                            <span class="text-xs text-slate-400">m²</span>
                         </div>
-                        <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Vocation</span>
-                            <span class="font-medium text-slate-800 break-words">${p.vocation || p.vocation_1 || '--'}</span>
+                        <div class="info-field col-span-2">
+                            <span class="info-label">Vocation</span>
+                            <span class="info-value">${p.vocation || p.vocation_1 || '--'}</span>
                         </div>
                     </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="map-pin" class="w-4 h-4"></i> Localisation
-                </h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4 grid grid-cols-2 gap-2 text-sm">
-                    <div><span class="text-slate-400 text-xs block">Région</span> <span class="font-medium">${p.region || '--'}</span></div>
-                    <div><span class="text-slate-400 text-xs block">Département</span> <span class="font-medium">${p.department || '--'}</span></div>
-                    <div><span class="text-slate-400 text-xs block">Arrondissement</span> <span class="font-medium">${p.arrondissement || '--'}</span></div>
-                    <div><span class="text-slate-400 text-xs block">Commune</span> <span class="font-medium">${p.commune || '--'}</span></div>
-                    <div class="col-span-2"><span class="text-slate-400 text-xs block">Village</span> <span class="font-medium break-words">${p.village || '--'}</span></div>
+
+                <!-- Location Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        <span>Localisation</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="info-field">
+                            <span class="info-label">Région</span>
+                            <span class="info-value">${p.region || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Département</span>
+                            <span class="info-value">${p.department || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Arrondissement</span>
+                            <span class="info-value">${p.arrondissement || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Commune</span>
+                            <span class="info-value">${p.commune || '--'}</span>
+                        </div>
+                        <div class="info-field col-span-2">
+                            <span class="info-label">Village</span>
+                            <span class="info-value">${p.village || '--'}</span>
+                        </div>
+                    </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-6">
-                    <i data-lucide="file-check" class="w-4 h-4"></i> Données Techniques
-                </h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2 mb-4">
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">NICAD</span><span class="font-mono font-bold text-indigo-600">${p.nicad || 'En attente'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || '--'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Approbation</span><span class="font-medium">${p.n_approbation || '--'}</span></div>
+
+                <!-- Technical Data Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="file-check" class="w-4 h-4"></i>
+                        <span>Données Techniques</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                            <span class="text-slate-500 text-sm">NICAD</span>
+                            <span class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm">${p.nicad || 'En attente'}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                            <span class="text-slate-500 text-sm">N° Délibération</span>
+                            <span class="font-medium text-slate-700">${p.n_deliberation || '--'}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="text-slate-500 text-sm">N° Approbation</span>
+                            <span class="font-medium text-slate-700">${p.n_approbation || '--'}</span>
+                        </div>
+                    </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-6">Détails Supplémentaires</h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 grid grid-cols-2 gap-2 text-sm">
-                    <div><span class="text-slate-400 text-xs block">Sexe</span> ${p.sexe || '--'}</div>
-                    <div><span class="text-slate-400 text-xs block">Date Naissance</span> ${p.date_naiss ? new Date(p.date_naiss).toLocaleDateString() : '--'}</div>
-                    <div class="col-span-2"><span class="text-slate-400 text-xs block">CNI</span> ${p.num_piece || '--'}</div>
-                    <div class="col-span-2"><span class="text-slate-400 text-xs block">Lieu Naissance</span> ${p.lieu_naiss || '--'}</div>
+
+                <!-- Personal Details Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="id-card" class="w-4 h-4"></i>
+                        <span>Détails Personnels</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="info-field">
+                            <span class="info-label">Sexe</span>
+                            <span class="info-value">${p.sexe || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Date de Naissance</span>
+                            <span class="info-value">${p.date_naiss ? new Date(p.date_naiss).toLocaleDateString('fr-FR') : '--'}</span>
+                        </div>
+                        <div class="info-field col-span-2">
+                            <span class="info-label">Numéro CNI</span>
+                            <span class="info-value font-mono">${p.num_piece || '--'}</span>
+                        </div>
+                        <div class="info-field col-span-2">
+                            <span class="info-label">Lieu de Naissance</span>
+                            <span class="info-value">${p.lieu_naiss || '--'}</span>
+                        </div>
+                    </div>
                 </div>
             `;
             } else if (p.type === 'collective') {
@@ -909,116 +979,166 @@ window.app = {
                 const telephoneValue = firstMandataire.telephone || firstMandataire.telephon2 || p.telephon2 || '';
 
                 const mandatariesHtml = (p.mandataries || []).map(m => `
-                <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
-                    <div class='flex justify-between items-start mb-2'>
-                        <span class='font-semibold text-slate-700'>${m.prenom || ''} ${m.nom || ''}</span>
-                        <span class='text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded'>${m.typ_per || 'Mandataire'}</span>
+                <div class='bg-white p-4 rounded-xl border border-slate-200 mb-3 card-hover'>
+                    <div class='flex justify-between items-start mb-3'>
+                        <span class='font-bold text-slate-800'>${m.prenom || ''} ${m.nom || ''}</span>
+                        <span class='text-xs bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-full font-medium'>${m.typ_per || 'Mandataire'}</span>
                     </div>
                     ${m.photo_rec_url || m.photo_ver_url ? `
-                    <div class='grid grid-cols-2 gap-2 mb-3'>
-                        ${m.photo_rec_url ? `<div><img src='${m.photo_rec_url}' alt='CNI Recto' class='w-full h-32 object-cover rounded border border-slate-300 shadow-sm' /></div>` : ''}
-                        ${m.photo_ver_url ? `<div><img src='${m.photo_ver_url}' alt='CNI Verso' class='w-full h-32 object-cover rounded border border-slate-300 shadow-sm' /></div>` : ''}
+                    <div class='grid grid-cols-2 gap-3 mb-3'>
+                        ${m.photo_rec_url ? `<div class="photo-card"><img src='${m.photo_rec_url}' alt='CNI Recto' /><div class="photo-label">Recto</div></div>` : ''}
+                        ${m.photo_ver_url ? `<div class="photo-card"><img src='${m.photo_ver_url}' alt='CNI Verso' /><div class="photo-label">Verso</div></div>` : ''}
                     </div>` : ''}
-                    <div class='grid grid-cols-2 gap-1 text-xs text-slate-600'>
-                        <div><span class='text-slate-400'>Sexe:</span> ${m.sexe || '--'}</div>
-                        <div><span class='text-slate-400'>Tél:</span> ${m.telephone || m.telephon2 || '--'}${m.telephon2 ? `<span class='block text-xs text-slate-500 mt-1'>Autre: ${m.telephon2}</span>` : ''}</div>
-                        <div><span class='text-slate-400'>Né(e) le:</span> ${m.date_naiss ? new Date(m.date_naiss).toLocaleDateString() : '--'}</div>
-                        <div><span class='text-slate-400'>À:</span> ${m.lieu_naiss || '--'}</div>
-                        <div class='col-span-2'><span class='text-slate-400'>CNI:</span> ${m.num_piece || '--'}</div>
+                    <div class='grid grid-cols-2 gap-2 text-sm text-slate-600'>
+                        <div class="info-field"><span class='info-label'>Sexe</span><span class="info-value">${m.sexe || '--'}</span></div>
+                        <div class="info-field"><span class='info-label'>Tél</span><span class="info-value">${m.telephone || m.telephon2 || '--'}</span></div>
+                        <div class="info-field"><span class='info-label'>Né(e) le</span><span class="info-value">${m.date_naiss ? new Date(m.date_naiss).toLocaleDateString('fr-FR') : '--'}</span></div>
+                        <div class="info-field"><span class='info-label'>Lieu</span><span class="info-value">${m.lieu_naiss || '--'}</span></div>
+                        <div class='info-field col-span-2'><span class='info-label'>CNI</span><span class="info-value font-mono">${m.num_piece || '--'}</span></div>
                     </div>
                 </div>
             `).join('');
 
                 const beneficiariesHtml = (p.beneficiaries || []).map((b, idx) => `
-                <div class='bg-white p-3 rounded border border-slate-200 mb-2'>
-                    <div class='flex justify-between items-start mb-1'>
-                        <span class='font-semibold text-slate-700'>${idx + 1}. ${b.prenom || ''} ${b.nom || ''}</span>
-                        <span class='text-xs text-slate-500'>${b.sexe || '--'}</span>
+                <div class='bg-white p-4 rounded-xl border border-slate-200 mb-3 card-hover'>
+                    <div class='flex justify-between items-start mb-2'>
+                        <span class='font-bold text-slate-800'><span class="text-indigo-500">${idx + 1}.</span> ${b.prenom || ''} ${b.nom || ''}</span>
+                        <span class='text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full'>${b.sexe || '--'}</span>
                     </div>
-                    <div class='grid grid-cols-2 gap-1 text-xs text-slate-600 mb-2'>
-                        <div><span class='text-slate-400'>Né(e):</span> ${b.date_naiss ? new Date(b.date_naiss).toLocaleDateString() : '--'}</div>
-                        <div><span class='text-slate-400'>Pièce:</span> ${b.type_piece || '--'}</div>
-                        <div class='col-span-2'><span class='text-slate-400'>N°:</span> ${b.num_piece || '--'}</div>
-                        ${b.telephon2 ? `<div class='col-span-2'><span class='text-slate-400'>Autre Tél:</span> ${b.telephon2}</div>` : ''}
+                    <div class='grid grid-cols-2 gap-2 text-sm mb-3'>
+                        <div class="info-field"><span class='info-label'>Né(e)</span><span class="info-value">${b.date_naiss ? new Date(b.date_naiss).toLocaleDateString('fr-FR') : '--'}</span></div>
+                        <div class="info-field"><span class='info-label'>Type Pièce</span><span class="info-value">${b.type_piece || '--'}</span></div>
+                        <div class='info-field col-span-2'><span class='info-label'>N° Pièce</span><span class="info-value font-mono">${b.num_piece || '--'}</span></div>
+                        ${b.telephon2 ? `<div class='info-field col-span-2'><span class='info-label'>Autre Tél</span><span class="info-value">${b.telephon2}</span></div>` : ''}
                     </div>
                     ${b.photo_rec_url || b.photo_ver_url || b.signature ? `
-                    <div class='grid grid-cols-3 gap-1 mt-2'>
-                        ${b.photo_rec_url ? `<div><img src='${b.photo_rec_url}' alt='Pièce Recto' class='w-full h-20 object-cover rounded border border-slate-200' /></div>` : ''}
-                        ${b.photo_ver_url ? `<div><img src='${b.photo_ver_url}' alt='Pièce Verso' class='w-full h-20 object-cover rounded border border-slate-200' /></div>` : ''}
-                        ${b.signature ? `<div><img src='${b.signature}' alt='Signature' class='w-full h-20 object-cover rounded border border-slate-200' /></div>` : ''}
+                    <div class='grid grid-cols-3 gap-2'>
+                        ${b.photo_rec_url ? `<div class="photo-card"><img src='${b.photo_rec_url}' alt='Pièce Recto' class="h-20" /></div>` : ''}
+                        ${b.photo_ver_url ? `<div class="photo-card"><img src='${b.photo_ver_url}' alt='Pièce Verso' class="h-20" /></div>` : ''}
+                        ${b.signature ? `<div class="photo-card"><img src='${b.signature}' alt='Signature' class="h-20" /></div>` : ''}
                     </div>` : ''}
                 </div>
             `).join('');
 
                 contentArea.innerHTML = `
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="users" class="w-4 h-4"></i> Mandataire Principal
-                </h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4">
-                    <p class="text-lg font-semibold text-slate-800 mb-3">${mandataireName}</p>
+                <!-- Main Mandataire Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Mandataire Principal</span>
+                    </div>
+                    <p class="text-xl font-bold text-slate-800 mb-4">${mandataireName}</p>
                     ${firstMandataire.photo_rec_url || firstMandataire.photo_ver_url ? `
-                    <div class='grid grid-cols-2 gap-3 mb-3'>
-                        ${firstMandataire.photo_rec_url ? `<div><img src='${firstMandataire.photo_rec_url}' alt='CNI Recto' class='w-full h-40 object-cover rounded-lg border-2 border-slate-300 shadow-md' /></div>` : ''}
-                        ${firstMandataire.photo_ver_url ? `<div><img src='${firstMandataire.photo_ver_url}' alt='CNI Verso' class='w-full h-40 object-cover rounded-lg border-2 border-slate-300 shadow-md' /></div>` : ''}
+                    <div class='grid grid-cols-2 gap-4 mb-4'>
+                        ${firstMandataire.photo_rec_url ? `<div class="photo-card"><img src='${firstMandataire.photo_rec_url}' alt='CNI Recto' /><div class="photo-label">CNI Recto</div></div>` : ''}
+                        ${firstMandataire.photo_ver_url ? `<div class="photo-card"><img src='${firstMandataire.photo_ver_url}' alt='CNI Verso' /><div class="photo-label">CNI Verso</div></div>` : ''}
                     </div>` : ''}
-                    <div class="grid grid-cols-2 gap-3 text-sm">
-                        <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Nombre d'affectataires</span>
-                            <span class="font-bold text-lg text-navy">${p.nombre_affectata || (p.beneficiaries ? p.beneficiaries.length : '--')}</span>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="info-field highlight">
+                            <span class="info-label">Affectataires</span>
+                            <span class="text-2xl font-bold text-indigo-600">${p.nombre_affectata || (p.beneficiaries ? p.beneficiaries.length : '--')}</span>
                         </div>
-                        <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Superficie</span>
-                            <span class="font-bold text-lg text-navy">${superficieValue ? parseFloat(superficieValue).toFixed(2) + ' m²' : '--'}</span>
+                        <div class="info-field highlight">
+                            <span class="info-label">Superficie</span>
+                            <span class="text-2xl font-bold text-emerald-600">${superficieValue ? parseFloat(superficieValue).toFixed(2) : '--'}</span>
+                            <span class="text-xs text-slate-400">m²</span>
                         </div>
-                        <div class="bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Téléphone</span>
-                            <span class="font-medium text-slate-800">${telephoneValue || '--'}</span>
+                        <div class="info-field">
+                            <span class="info-label">Téléphone</span>
+                            <span class="info-value">${telephoneValue || '--'}</span>
                         </div>
-                        <div class="col-span-2 bg-white p-2 rounded border border-slate-200">
-                            <span class="block text-slate-400 text-xs mb-1">Vocation</span>
-                            <span class="font-medium text-slate-800">${p.vocation || p.vocation_1 || '--'}</span>
+                        <div class="info-field col-span-2">
+                            <span class="info-label">Vocation</span>
+                            <span class="info-value">${p.vocation || p.vocation_1 || '--'}</span>
                         </div>
                     </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="map-pin" class="w-4 h-4"></i> Localisation
-                </h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-4 grid grid-cols-2 gap-2 text-sm">
-                    <div><span class="text-slate-400 text-xs block">Région</span> <span class="font-medium">${p.region || '--'}</span></div>
-                    <div><span class="text-slate-400 text-xs block">Département</span> <span class="font-medium">${p.department || '--'}</span></div>
-                    <div><span class="text-slate-400 text-xs block">Arrondissement</span> <span class="font-medium">${p.arrondissement || '--'}</span></div>
-                    <div><span class="text-slate-400 text-xs block">Commune</span> <span class="font-medium">${p.commune || '--'}</span></div>
-                    <div class="col-span-2"><span class="text-slate-400 text-xs block">Village</span> <span class="font-medium break-words">${p.village || '--'}</span></div>
+
+                <!-- Location Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        <span>Localisation</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="info-field">
+                            <span class="info-label">Région</span>
+                            <span class="info-value">${p.region || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Département</span>
+                            <span class="info-value">${p.department || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Arrondissement</span>
+                            <span class="info-value">${p.arrondissement || '--'}</span>
+                        </div>
+                        <div class="info-field">
+                            <span class="info-label">Commune</span>
+                            <span class="info-value">${p.commune || '--'}</span>
+                        </div>
+                        <div class="info-field col-span-2">
+                            <span class="info-label">Village</span>
+                            <span class="info-value">${p.village || '--'}</span>
+                        </div>
+                    </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="file-check" class="w-4 h-4"></i> Données Techniques
-                </h3>
-                <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-2 mb-4">
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">NICAD</span><span class="font-mono font-bold text-indigo-600">${p.nicad || 'En attente'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Délibération</span><span class="font-medium">${p.n_deliberation || '--'}</span></div>
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">N° Approbation</span><span class="font-medium">${p.n_approbation || '--'}</span></div>
+
+                <!-- Technical Data Card -->
+                <div class="info-card card-hover">
+                    <div class="section-title">
+                        <i data-lucide="file-check" class="w-4 h-4"></i>
+                        <span>Données Techniques</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                            <span class="text-slate-500 text-sm">NICAD</span>
+                            <span class="font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full text-sm">${p.nicad || 'En attente'}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                            <span class="text-slate-500 text-sm">N° Délibération</span>
+                            <span class="font-medium text-slate-700">${p.n_deliberation || '--'}</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2">
+                            <span class="text-slate-500 text-sm">N° Approbation</span>
+                            <span class="font-medium text-slate-700">${p.n_approbation || '--'}</span>
+                        </div>
+                    </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-4 mb-2">
-                    <i data-lucide="user-check" class="w-4 h-4"></i> Mandataires (${(p.mandataries || []).length})
-                </h3>
-                <div class="max-h-64 overflow-y-auto custom-scroll">
-                    ${mandatariesHtml || '<p class="text-sm text-slate-400 italic">Aucun mandataire</p>'}
+
+                <!-- Mandataires Section -->
+                <div class="info-card">
+                    <div class="section-title mb-4">
+                        <i data-lucide="user-check" class="w-4 h-4"></i>
+                        <span>Mandataires</span>
+                        <span class="ml-auto bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">${(p.mandataries || []).length}</span>
+                    </div>
+                    <div class="max-h-72 overflow-y-auto custom-scroll pr-2">
+                        ${mandatariesHtml || '<p class="text-sm text-slate-400 italic text-center py-4">Aucun mandataire</p>'}
+                    </div>
                 </div>
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-4 mb-2">
-                    <i data-lucide="users" class="w-4 h-4"></i> Affectataires/Bénéficiaires (${(p.beneficiaries || []).length})
-                </h3>
-                <div class="max-h-64 overflow-y-auto custom-scroll">
-                    ${beneficiariesHtml || '<p class="text-sm text-slate-400 italic">Aucun bénéficiaire</p>'}
+
+                <!-- Beneficiaries Section -->
+                <div class="info-card">
+                    <div class="section-title mb-4">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Affectataires / Bénéficiaires</span>
+                        <span class="ml-auto bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-full">${(p.beneficiaries || []).length}</span>
+                    </div>
+                    <div class="max-h-72 overflow-y-auto custom-scroll pr-2">
+                        ${beneficiariesHtml || '<p class="text-sm text-slate-400 italic text-center py-4">Aucun bénéficiaire</p>'}
+                    </div>
                 </div>
             `;
             }
             // Images - for collective parcels, show mandataire photos
+            const placeholderImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='14'%3ENon disponible%3C/text%3E%3C/svg%3E";
             if (p.type === 'collective' && p.mandataries && p.mandataries.length > 0) {
-                document.getElementById('panelPhotoRecto').src = p.mandataries[0].photo_rec_url || "https://placehold.co/600x400?text=Non+Disponible";
-                document.getElementById('panelPhotoVerso').src = p.mandataries[0].photo_ver_url || "https://placehold.co/600x400?text=Non+Disponible";
+                document.getElementById('panelPhotoRecto').src = p.mandataries[0].photo_rec_url || placeholderImg;
+                document.getElementById('panelPhotoVerso').src = p.mandataries[0].photo_ver_url || placeholderImg;
             } else {
-                document.getElementById('panelPhotoRecto').src = p.photo_rec_url || "https://placehold.co/600x400?text=Non+Disponible";
-                document.getElementById('panelPhotoVerso').src = p.photo_ver_url || "https://placehold.co/600x400?text=Non+Disponible";
+                document.getElementById('panelPhotoRecto').src = p.photo_rec_url || placeholderImg;
+                document.getElementById('panelPhotoVerso').src = p.photo_ver_url || placeholderImg;
             }
             // Conflict
             const alertBox = document.getElementById('conflictAlert');
