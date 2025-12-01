@@ -66,13 +66,14 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
 
-    // Add cache headers for faster tile loading
-    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400'); // Cache for 1 hour, serve stale for 24h
+    // Add aggressive cache headers for faster tile loading
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800'); // Cache for 24h, serve stale for 7d
     res.setHeader('Content-Type', 'application/x-protobuf');
     res.setHeader('Access-Control-Max-Age', '86400'); // CORS preflight cache
+    res.setHeader('Vary', 'Accept-Encoding');
 
     // Optimized query with spatial indexing and simplification at lower zoom levels
-    const simplification = z < 10 ? 50 : z < 12 ? 20 : z < 14 ? 10 : z < 16 ? 5 : 0; // Simplify geometries at lower zoom
+    const simplification = z < 10 ? 100 : z < 12 ? 50 : z < 14 ? 20 : z < 16 ? 10 : 0; // More aggressive simplification
 
     const query = `
       WITH bounds AS (
@@ -83,12 +84,8 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
           p.id,
           p.num_parcel,
           p.status,
-          COALESCE(i.type_usag, c.type_usag, 'Inconnu') AS type_usag,
-          CASE 
-            WHEN i.num_parcel IS NOT NULL THEN 'individual'
-            WHEN c.num_parcel IS NOT NULL THEN 'collective'
-            ELSE 'unknown'
-          END AS type,
+          p.type AS type_usag,
+          'parcels' AS type,
           ST_AsMVTGeom(
             ${simplification > 0
         ? `ST_Simplify(ST_Transform(p.geometry, 3857), ${simplification})`
@@ -96,15 +93,12 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
       },
             bounds.geom,
             4096,
-            64,
+            256,
             true
           ) AS geom
         FROM parcels p
-        LEFT JOIN individual_surveys i ON p.num_parcel = i.num_parcel
-        LEFT JOIN collective_surveys c ON p.num_parcel = c.num_parcel
         CROSS JOIN bounds
-        WHERE ST_Intersects(ST_Transform(p.geometry, 3857), bounds.geom)
-          AND ST_Transform(p.geometry, 3857) && bounds.geom
+        WHERE p.geometry && ST_Transform(bounds.geom, 32628)
       )
       SELECT ST_AsMVT(mvtgeom.*, 'parcels', 4096, 'geom') AS mvt FROM mvtgeom;
     `;
@@ -174,8 +168,9 @@ app.get('/api/parcels/:id', async (req, res) => {
 
   try {
     // Add cache headers for faster repeated access
-    res.setHeader('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Vary', 'Accept-Encoding');
 
     const query = `
       SELECT
