@@ -85,7 +85,7 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
           p.num_parcel,
           p.status,
           p.type,
-          COALESCE(i.type_usag, c.type_usag) AS type_usag,
+          p.type_usag,
           ST_AsMVTGeom(
             ${simplification > 0
         ? `ST_Simplify(ST_Transform(p.geometry, 3857), ${simplification})`
@@ -98,8 +98,6 @@ app.get('/api/tiles/:z/:x/:y', async (req, res) => {
           ) AS geom
         FROM parcels p
         CROSS JOIN bounds
-        LEFT JOIN individual_surveys i ON p.num_parcel = i.num_parcel
-        LEFT JOIN collective_surveys c ON p.num_parcel = c.num_parcel
         WHERE p.geometry && ST_Transform(bounds.geom, 32628)
       )
       SELECT ST_AsMVT(mvtgeom.*, 'parcels', 4096, 'geom') AS mvt FROM mvtgeom;

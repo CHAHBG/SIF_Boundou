@@ -464,7 +464,7 @@ window.app = {
                 'deliberee', '#8b5cf6',
                 'approuvee', '#10b981',
                 'Approved', '#10b981',
-                '#94a3b8'
+                '#f97316'
             ];
         }
     },
