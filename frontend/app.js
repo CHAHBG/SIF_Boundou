@@ -568,11 +568,31 @@ window.app = {
             'filter': ['==', 'id', '']
         };
 
+        // Border outline layer for all parcels
+        const outlineLayer = {
+            'id': 'parcels-outline',
+            'type': 'line',
+            'source': 'parcels-source',
+            'source-layer': 'parcels',
+            'paint': {
+                'line-color': '#000000',
+                'line-width': [
+                    'interpolate', ['linear'], ['zoom'],
+                    10, 0.3,
+                    14, 0.8,
+                    18, 1.5
+                ],
+                'line-opacity': 0.7
+            }
+        };
+
         if (beforeLayerId) {
             this.map.addLayer(parcels3dLayer, beforeLayerId);
+            this.map.addLayer(outlineLayer, beforeLayerId);
             this.map.addLayer(highlightLayer, beforeLayerId);
         } else {
             this.map.addLayer(parcels3dLayer);
+            this.map.addLayer(outlineLayer);
             this.map.addLayer(highlightLayer);
         }
     },
