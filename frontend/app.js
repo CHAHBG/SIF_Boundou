@@ -477,7 +477,10 @@ window.app = {
         if (this.is3D) {
             this.map.setPaintProperty('parcels-3d', 'fill-extrusion-height', [
                 'case',
-                ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
+                ['any',
+                    ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
+                    ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usa'], '']]]
+                ],
                 ['+', 10, ['%', ['to-number', ['get', 'id']], 21]],
                 0
             ]);
@@ -531,7 +534,10 @@ window.app = {
                 'fill-extrusion-color': this.getColorExpression(),
                 'fill-extrusion-height': [
                     'case',
-                    ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
+                    ['any',
+                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
+                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usa'], '']]]
+                    ],
                     ['+', 10, ['%', ['to-number', ['get', 'id']], 21]],
                     0
                 ],
@@ -542,12 +548,22 @@ window.app = {
 
         const highlightLayer = {
             'id': 'parcels-highlight',
-            'type': 'line',
+            'type': 'fill-extrusion',
             'source': 'parcels-source',
             'source-layer': 'parcels',
             'paint': {
-                'line-color': '#4f46e5',
-                'line-width': 3
+                'fill-extrusion-color': '#4f46e5',
+                'fill-extrusion-height': [
+                    'case',
+                    ['any',
+                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
+                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usa'], '']]]
+                    ],
+                    ['+', 10, ['%', ['to-number', ['get', 'id']], 21]],
+                    0
+                ],
+                'fill-extrusion-base': 0,
+                'fill-extrusion-opacity': 0.9
             },
             'filter': ['==', 'id', '']
         };
@@ -817,7 +833,7 @@ window.app = {
             const statusBadge = document.getElementById('panelStatus');
             const statusText = p.status || 'Inconnu';
             statusBadge.innerText = statusText.charAt(0).toUpperCase() + statusText.slice(1);
-            
+
             // Modern gradient status badges
             if (p.status === 'approuvee' || p.status === 'Approved') {
                 statusBadge.className = 'status-badge bg-gradient-to-r from-emerald-400 to-green-500 text-white';
