@@ -785,17 +785,19 @@ window.app = {
                 }
 
                 // Fly to location - preserve current view mode (2D or 3D)
-                if (feature.geometry && feature.properties.centroid) {
+                if (feature.geometry && feature.properties.centroid && feature.properties.centroid.coordinates) {
                     const coords = feature.properties.centroid.coordinates;
-                    // Offset the center slightly to the left to account for detail panel
-                    const offsetCoords = [coords[0] - 0.001, coords[1]];
-                    this.map.flyTo({
-                        center: offsetCoords,
-                        zoom: 17, // Slightly zoomed out to show parcel in context
-                        pitch: this.is3D ? 45 : 0, // Preserve 2D/3D mode
-                        duration: 800,
-                        essential: true
-                    });
+                    if (coords && coords.length >= 2) {
+                        // Offset the center slightly to the left to account for detail panel
+                        const offsetCoords = [coords[0] - 0.001, coords[1]];
+                        this.map.flyTo({
+                            center: offsetCoords,
+                            zoom: 17, // Slightly zoomed out to show parcel in context
+                            pitch: this.is3D ? 45 : 0, // Preserve 2D/3D mode
+                            duration: 800,
+                            essential: true
+                        });
+                    }
                 }
 
                 // Populate panel with actual data
