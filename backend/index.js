@@ -300,10 +300,7 @@ app.get('/api/parcels/:id', async (req, res) => {
         vocation: row.vocation || (row.details && row.details.vocation) || '',
         superficie_reelle: (row.details && row.details.superficie_reelle) || row.superficie || row.superficie_parcelle || '',
         surface: row.superficie || row.superficie_parcelle || (row.details && row.details.superficie_reelle) || '',
-        centroid: {
-          type: 'Point',
-          coordinates: row.centroid_coords
-        },
+        centroid: row.centroid,
         n_deliberation: row.n_deliberation,
         n_approbation: row.n_approbation,
         conflict: row.conflict,

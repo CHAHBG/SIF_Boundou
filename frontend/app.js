@@ -1,7 +1,7 @@
 window.app = {
     map: null,
     currentStyle: 'osm',
-    is3D: true,
+    is3D: false,
     colorByType: false,
     lastClickLngLat: null,
     lightingInterval: null,
@@ -110,7 +110,7 @@ window.app = {
             style: this.styles['osm'], // Default to OSM
             center: window.APP_CONFIG.MAP_CENTER,
             zoom: window.APP_CONFIG.MAP_ZOOM,
-            pitch: 45, // Tilt for 3D effect
+            pitch: 0, // Default to 2D view
             bearing: -17.6,
             antialias: true,
             dragRotate: true, // Enable rotation with Ctrl+drag or right-click drag
