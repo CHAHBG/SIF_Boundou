@@ -446,6 +446,11 @@ window.app = {
         }
 
         this.map.setFilter('parcels-3d', filter);
+
+        // Sync outline layer filter
+        if (this.map.getLayer('parcels-outline')) {
+            this.map.setFilter('parcels-outline', filter);
+        }
     },
 
     getColorExpression() {
