@@ -568,34 +568,21 @@ window.app = {
             'filter': ['==', 'id', '']
         };
 
-        // 3D Border outline layer - uses fill-extrusion to follow building shape
+        // 2D Black outline layer for parcel borders
         const outlineLayer = {
             'id': 'parcels-outline',
-            'type': 'fill-extrusion',
+            'type': 'line',
             'source': 'parcels-source',
             'source-layer': 'parcels',
             'paint': {
-                'fill-extrusion-color': '#1e293b', // Dark slate for outline
-                'fill-extrusion-height': [
-                    'case',
-                    ['any',
-                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
-                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usa'], '']]]
-                    ],
-                    ['+', 10.5, ['%', ['to-number', ['get', 'id']], 21]], // Slightly higher than main layer
-                    0.5 // Small height for non-habitat parcels
+                'line-color': '#000000',
+                'line-width': [
+                    'interpolate', ['linear'], ['zoom'],
+                    10, 0.5,
+                    14, 1,
+                    18, 2
                 ],
-                'fill-extrusion-base': [
-                    'case',
-                    ['any',
-                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usag'], '']]],
-                        ['in', 'habitat', ['downcase', ['coalesce', ['get', 'type_usa'], '']]]
-                    ],
-                    ['+', 10, ['%', ['to-number', ['get', 'id']], 21]], // Same as main layer height (creates edge effect)
-                    0
-                ],
-                'fill-extrusion-opacity': 0.6,
-                'fill-extrusion-vertical-gradient': true
+                'line-opacity': 0.8
             }
         };
 
