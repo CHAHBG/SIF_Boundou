@@ -484,8 +484,16 @@ window.app = {
                 ['+', 10, ['%', ['to-number', ['get', 'id']], 21]],
                 0
             ]);
+            // Hide black outline in 3D mode
+            if (this.map.getLayer('parcels-outline')) {
+                this.map.setLayoutProperty('parcels-outline', 'visibility', 'none');
+            }
         } else {
             this.map.setPaintProperty('parcels-3d', 'fill-extrusion-height', 0);
+            // Show black outline in 2D mode
+            if (this.map.getLayer('parcels-outline')) {
+                this.map.setLayoutProperty('parcels-outline', 'visibility', 'visible');
+            }
         }
 
         // Apply visibility filters
