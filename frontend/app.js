@@ -130,6 +130,8 @@ window.app = {
         this.map.on('load', () => {
             this.addSourcesAndLayers();
             this.setupInteractions();
+            // Apply 2D/3D mode settings on initial load
+            this.updateLayers();
 
             // Load rooftop pattern for habitat - simple diagonal lines pattern
             const size = 64;
@@ -779,6 +781,11 @@ window.app = {
     fetchAndShowDetails(id) {
         // INSTANT PANEL: Show panel immediately with loading skeleton
         this.openPanelWithLoading(id);
+
+        // Highlight the parcel immediately
+        if (this.map.getLayer('parcels-highlight')) {
+            this.map.setFilter('parcels-highlight', ['==', 'id', parseInt(id)]);
+        }
 
         // Backend API URL from config
         const BACKEND_URL = window.APP_CONFIG.BACKEND_URL;
