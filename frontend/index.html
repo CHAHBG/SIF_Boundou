@@ -594,90 +594,171 @@
         </div>
     </main>
 
-    <!-- Tutorial Modal -->
+    <!-- Tutorial Modal (Professional Design) -->
     <div id="tutorialModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden transition-opacity duration-300">
+        <div
+            class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden transform transition-all duration-300 scale-100">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
-                <div class="flex items-center gap-3 mb-2">
-                    <i data-lucide="info" class="w-8 h-8"></i>
-                    <h2 class="text-xl font-bold">Bienvenue sur SIF Boundou!</h2>
+            <div class="bg-gradient-to-r from-slate-800 to-slate-900 p-8 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <i data-lucide="map" class="w-32 h-32"></i>
                 </div>
-                <p class="text-blue-100 text-sm">Guide rapide des fonctionnalités</p>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-white/10 rounded-lg backdrop-blur-md">
+                            <i data-lucide="info" class="w-6 h-6 text-blue-400"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold tracking-tight">Bienvenue sur SIF Boundou</h2>
+                    </div>
+                    <p class="text-slate-300 text-sm max-w-lg">
+                        Votre plateforme de gestion foncière unifiée. Voici un guide rapide pour maîtriser l'interface.
+                    </p>
+                </div>
             </div>
 
-            <!-- Content -->
-            <div class="p-6 space-y-4">
-                <div class="flex items-start gap-4 p-3 bg-slate-50 rounded-lg">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="search" class="w-5 h-5 text-blue-600"></i>
+            <!-- Content Grid -->
+            <div class="p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Feature 1 -->
+                    <div
+                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                        <div
+                            class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                            <i data-lucide="search" class="w-5 h-5 text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Recherche Intelligente</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">Trouvez rapidement une parcelle par son
+                                numéro, nom du propriétaire ou code NICAD.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">Barre de recherche</h3>
-                        <p class="text-sm text-slate-600">Recherchez par numéro de parcelle, nom ou NICAD</p>
+
+                    <!-- Feature 2 -->
+                    <div
+                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                        <div
+                            class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+                            <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Fonds de Carte</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">Adaptez votre vue : Plan (OSM), Satellite
+                                ou Google Hybrid pour plus de détails.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div
+                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                        <div
+                            class="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-violet-100 transition-colors">
+                            <i data-lucide="box" class="w-5 h-5 text-violet-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Immersion 3D</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">Activez la 3D pour visualiser les volumes
+                                bâtis et l'urbanisme en relief.</p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div
+                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                        <div
+                            class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 transition-colors">
+                            <i data-lucide="tag" class="w-5 h-5 text-amber-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm mb-1">Légende Dynamique</h3>
+                            <p class="text-xs text-slate-500 leading-relaxed">Colorez la carte par statut juridique ou
+                                par type d'usage pour une analyse rapide.</p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-start gap-4 p-3 bg-slate-50 rounded-lg">
-                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="map" class="w-5 h-5 text-green-600"></i>
+                <div class="mt-6 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center gap-4">
+                    <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-indigo-600"></i>
                     </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">Fonds de carte</h3>
-                        <p class="text-sm text-slate-600">Basculez entre OSM, Satellite, Google Maps</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-3 bg-slate-50 rounded-lg">
-                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="box" class="w-5 h-5 text-purple-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">Vue 2D / 3D</h3>
-                        <p class="text-sm text-slate-600">Activez la vue 3D pour voir les bâtiments en relief</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-3 bg-slate-50 rounded-lg">
-                    <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="palette" class="w-5 h-5 text-amber-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">Couleurs par statut/type</h3>
-                        <p class="text-sm text-slate-600">Affichez les parcelles par statut ou type
-                            (individuel/collectif)</p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-4 p-3 bg-slate-50 rounded-lg">
-                    <div class="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="mouse-pointer-click" class="w-5 h-5 text-rose-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-800">Cliquez sur une parcelle</h3>
-                        <p class="text-sm text-slate-600">Voir les détails complets: propriétaire, superficie, statut
-                        </p>
-                    </div>
+                    <p class="text-xs text-indigo-800 font-medium">
+                        <span class="font-bold">Astuce Pro :</span> Cliquez sur n'importe quelle parcelle pour accéder à
+                        sa fiche signalétique complète (photos, surface, historique).
+                    </p>
                 </div>
             </div>
 
             <!-- Footer -->
-            <div class="px-6 pb-6 flex items-center justify-between">
-                <label class="flex items-center gap-2 text-sm text-slate-500 cursor-pointer">
-                    <input type="checkbox" id="dontShowAgain" class="rounded border-slate-300">
-                    Ne plus afficher
+            <div class="px-8 pb-8 flex items-center justify-between border-t border-slate-100 pt-6">
+                <label
+                    class="flex items-center gap-2 text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700 transition-colors">
+                    <div class="relative flex items-center">
+                        <input type="checkbox" id="dontShowAgain"
+                            class="peer h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 transition-all">
+                    </div>
+                    Ne plus afficher ce guide
                 </label>
                 <button onclick="closeTutorial()"
-                    class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg">
-                    Commencer
+                    class="px-8 py-3 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
+                    Accéder à la carte
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- Custom Tooltip Container -->
+    <div id="customTooltip"
+        class="fixed z-[10000] px-3 py-2 bg-slate-900/90 text-white text-xs font-medium rounded shadow-lg pointer-events-none transition-opacity duration-200 opacity-0 backdrop-blur-sm whitespace-nowrap">
+    </div>
+
     <script>
-        // Tutorial Modal Functions
+        // --- Tooltip Logic ---
+        const tooltip = document.getElementById('customTooltip');
+
+        function showTooltip(e, text) {
+            tooltip.textContent = text;
+            tooltip.style.opacity = '1';
+            updateTooltipPos(e);
+        }
+
+        function hideTooltip() {
+            tooltip.style.opacity = '0';
+        }
+
+        function updateTooltipPos(e) {
+            const offset = 10;
+            let left = e.clientX + offset;
+            let top = e.clientY + offset;
+
+            // Boundary checks
+            const rect = tooltip.getBoundingClientRect();
+            if (left + rect.width > window.innerWidth) left = e.clientX - rect.width - offset;
+            if (top + rect.height > window.innerHeight) top = e.clientY - rect.height - offset;
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+
+        // Initialize tooltips for all elements with 'title' attribute
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('[title]');
+            if (target && target.getAttribute('title')) {
+                const text = target.getAttribute('title');
+                target.setAttribute('data-original-title', text);
+                target.removeAttribute('title'); // Remove default browser tooltip
+                showTooltip(e, text);
+
+                target.addEventListener('mousemove', updateTooltipPos);
+                target.addEventListener('mouseleave', function cleanup() {
+                    hideTooltip();
+                    target.setAttribute('title', text); // Restore for accessibility
+                    target.removeEventListener('mousemove', updateTooltipPos);
+                    target.removeEventListener('mouseleave', cleanup);
+                }, { once: true });
+            }
+        });
+
+        // --- Tutorial Modal Functions ---
         function showTutorial() {
             const modal = document.getElementById('tutorialModal');
             if (modal) {
