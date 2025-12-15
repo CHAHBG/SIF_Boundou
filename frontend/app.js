@@ -784,14 +784,16 @@ window.app = {
                     return;
                 }
 
-                // Fly to location with optimized animation (non-blocking)
+                // Fly to location - preserve current view mode (2D or 3D)
                 if (feature.geometry && feature.properties.centroid) {
                     const coords = feature.properties.centroid.coordinates;
+                    // Offset the center slightly to the left to account for detail panel
+                    const offsetCoords = [coords[0] - 0.001, coords[1]];
                     this.map.flyTo({
-                        center: coords,
-                        zoom: 19,
-                        pitch: 60,
-                        duration: 1200,
+                        center: offsetCoords,
+                        zoom: 17, // Slightly zoomed out to show parcel in context
+                        pitch: this.is3D ? 45 : 0, // Preserve 2D/3D mode
+                        duration: 800,
                         essential: true
                     });
                 }
