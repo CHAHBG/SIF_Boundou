@@ -29,11 +29,7 @@ const config = {
     SEARCH_DEBOUNCE: 400, // milliseconds
     CLICK_DEBOUNCE: 500, // milliseconds
     FETCH_TIMEOUT: 10000, // 10 seconds
-    FETCH_RETRIES: 3,
-
-    // Google Maps API Key - IMPORTANT: Replace with your own key
-    // For production, use environment variables or a backend proxy
-    GOOGLE_MAPS_API_KEY: 'AIzaSyAjEKwaoCI7XuVrgQdvBqOdJOgEc94Xezc' // TODO: Replace this!
+    FETCH_RETRIES: 3
 };
 
 // Make config available globally

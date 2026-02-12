@@ -771,7 +771,9 @@ window.app = {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const errorBody = await response.text();
+                    const serverMessage = (errorBody || '').slice(0, 250).trim();
+                    throw new Error(`HTTP ${response.status}${serverMessage ? `: ${serverMessage}` : ''}`);
                 }
 
                 return await response.json();
@@ -799,8 +801,7 @@ window.app = {
         this.fetchWithRetry(`${BACKEND_URL}/api/parcels/${id}`)
             .then(feature => {
                 if (feature.error) {
-                    this.closePanel();
-                    alert('Erreur: ' + feature.error);
+                    this.showPanelError(`Erreur: ${feature.error}`, () => this.fetchAndShowDetails(id));
                     return;
                 }
 
@@ -825,8 +826,7 @@ window.app = {
             })
             .catch(err => {
                 console.error('Error fetching details:', err);
-                this.closePanel();
-                alert('Impossible de charger les détails. Vérifiez votre connexion Internet et réessayez.\n\nErreur: ' + err.message);
+                this.showPanelError('Impossible de charger les détails de cette parcelle pour le moment.', () => this.fetchAndShowDetails(id), err.message);
             });
     },
 
@@ -864,6 +864,52 @@ window.app = {
         if (panel) {
             panel.classList.add('translate-x-full');
         }
+    },
+
+    showPanelError(message, retryFn, technicalDetails = '') {
+        const panel = document.getElementById('detailPanel');
+        const contentArea = document.getElementById('panelContentLeft');
+
+        if (!panel || !contentArea) {
+            return;
+        }
+
+        const escapedMessage = this.escapeHtml(message);
+        const escapedDetails = this.escapeHtml(technicalDetails || '');
+
+        contentArea.innerHTML = `
+            <div class="p-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-800">
+                <div class="font-semibold mb-2">Chargement impossible</div>
+                <div class="text-sm mb-3">${escapedMessage}</div>
+                <div class="flex items-center gap-2">
+                    <button id="retryParcelDetailsBtn" class="px-3 py-1.5 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors text-sm">Réessayer</button>
+                    <button id="closeParcelDetailsBtn" class="px-3 py-1.5 bg-white border border-rose-200 text-rose-700 rounded-md hover:bg-rose-100 transition-colors text-sm">Fermer</button>
+                </div>
+                ${escapedDetails ? `<div class="mt-3 text-xs text-rose-600 break-all">${escapedDetails}</div>` : ''}
+            </div>
+        `;
+
+        const retryBtn = document.getElementById('retryParcelDetailsBtn');
+        const closeBtn = document.getElementById('closeParcelDetailsBtn');
+
+        if (retryBtn && typeof retryFn === 'function') {
+            retryBtn.onclick = retryFn;
+        }
+
+        if (closeBtn) {
+            closeBtn.onclick = () => this.closePanel();
+        }
+
+        panel.classList.remove('translate-x-full');
+    },
+
+    escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     },
 
     populatePanel(feature) {

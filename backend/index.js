@@ -9,16 +9,35 @@ const { initScheduler } = require('./scheduler');
 const app = express();
 const port = process.env.PORT || 4000;
 
+app.disable('x-powered-by');
+
 // Initialize Scheduler
 initScheduler();
 
-// CORS Configuration - Permissive for debugging
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+// CORS Configuration
 const corsOptions = {
-  origin: '*', // Allow all origins for now
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('CORS origin not allowed'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
-  credentials: false, // Set to false when using origin: '*'
+  credentials: false,
   optionsSuccessStatus: 200,
   maxAge: 86400 // 24 hours
 };
@@ -27,6 +46,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression()); // Enable gzip compression
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  next();
+});
 
 // PostgreSQL connection pool with optimized settings
 const pool = new Pool({
@@ -52,6 +77,46 @@ pool.query('SELECT NOW()', (err, res) => {
     console.log('Database connected successfully at:', res.rows[0].now);
   }
 });
+
+const tableColumnsCache = new Map();
+
+async function getTableColumns(tableName) {
+  if (tableColumnsCache.has(tableName)) {
+    return tableColumnsCache.get(tableName);
+  }
+
+  const promise = pool
+    .query(
+      `
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = $1
+      `,
+      [tableName]
+    )
+    .then((result) => new Set(result.rows.map((row) => row.column_name)))
+    .catch((error) => {
+      tableColumnsCache.delete(tableName);
+      throw error;
+    });
+
+  tableColumnsCache.set(tableName, promise);
+  return promise;
+}
+
+function selectColumnOrNull(columnSet, expression, alias, cast = 'text') {
+  return columnSet.has(expression) ? `p.${expression} AS ${alias}` : `NULL::${cast} AS ${alias}`;
+}
+
+function getVillageSelect(columnSet) {
+  if (columnSet.has('village')) {
+    return 'p.village AS village';
+  }
+  if (columnSet.has('Village')) {
+    return 'p."Village" AS village';
+  }
+  return 'NULL::text AS village';
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -170,30 +235,38 @@ app.get('/api/search', async (req, res) => {
 app.get('/api/parcels/:id', async (req, res) => {
   const { id } = req.params;
 
+  if (!id || String(id).length > 128) {
+    return res.status(400).json({ error: 'Invalid parcel identifier' });
+  }
+
   try {
     // Add cache headers for faster repeated access
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Vary', 'Accept-Encoding');
+
+    const [parcelColumns] = await Promise.all([
+      getTableColumns('parcels')
+    ]);
 
     const query = `
       SELECT
         p.id,
         p.num_parcel,
         p.status,
-        ST_AsGeoJSON(p.geometry)::json AS geometry,
-        json_build_object(
+        CASE WHEN p.geometry IS NOT NULL THEN ST_AsGeoJSON(p.geometry)::json ELSE NULL END AS geometry,
+        CASE WHEN p.geometry IS NOT NULL THEN json_build_object(
           'type', 'Point',
           'coordinates', json_build_array(
             ST_X(ST_Transform(ST_Centroid(p.geometry), 4326)),
             ST_Y(ST_Transform(ST_Centroid(p.geometry), 4326))
           )
-        ) AS centroid,
-        p.region_senegal,
-        p.department_senegal,
-        p.arrondissement_senegal,
-        p.commune_senegal,
-        p.village,
+        ) ELSE NULL END AS centroid,
+        ${selectColumnOrNull(parcelColumns, 'region_senegal', 'region_senegal')},
+        ${selectColumnOrNull(parcelColumns, 'department_senegal', 'department_senegal')},
+        ${selectColumnOrNull(parcelColumns, 'arrondissement_senegal', 'arrondissement_senegal')},
+        ${selectColumnOrNull(parcelColumns, 'commune_senegal', 'commune_senegal')},
+        ${getVillageSelect(parcelColumns)},
         p.nicad,
         CASE 
           WHEN i.num_parcel IS NOT NULL THEN 'individual'
@@ -203,10 +276,10 @@ app.get('/api/parcels/:id', async (req, res) => {
         COALESCE(i.vocation, c.vocation) AS vocation,
         COALESCE(i.sup_reelle, c.sup_reelle) AS superficie,
         p.superficie AS superficie_parcelle,
-        p.numero_deliberation AS n_deliberation,
-        p.numero_approbation AS n_approbation,
-        p.conflict,
-        p.conflict_reason,
+        ${selectColumnOrNull(parcelColumns, 'numero_deliberation', 'n_deliberation')},
+        ${selectColumnOrNull(parcelColumns, 'numero_approbation', 'n_approbation')},
+        ${selectColumnOrNull(parcelColumns, 'conflict', 'conflict')},
+        ${selectColumnOrNull(parcelColumns, 'conflict_reason', 'conflict_reason')},
         CASE 
           WHEN i.num_parcel IS NOT NULL THEN json_build_object(
             'prenom', i.prenom,
@@ -232,39 +305,12 @@ app.get('/api/parcels/:id', async (req, res) => {
             'type_usag', c.type_usag,
             'nom_groupement', 'Groupement',
             'mandataries', COALESCE((
-              SELECT json_agg(json_build_object(
-                'prenom', m.prenom,
-                'nom', m.nom,
-                'sexe', m.sexe,
-                'telephone', m.contact,
-                'typ_per', m.typ_per,
-                'date_naiss', m.date_naiss,
-                'lieu_naiss', m.lieu_naiss,
-                'num_piece', m.num_piece,
-                'date_deliv', m.date_deliv,
-                'photo_rec_url', m.photo_rec_url,
-                'photo_ver_url', m.photo_ver_url,
-                'situ_mat', m.situ_mat,
-                'nbr_epse', m.nbr_epse,
-                'chef_fam', m.chef_fam,
-                'chef_mena', m.chef_mena,
-                'nat_001', m.nat_001
-              ))
+              SELECT json_agg(to_jsonb(m) - 'id' - 'collective_survey_id' - 'created_at')
               FROM mandataries m
               WHERE m.num_parcel = p.num_parcel
             ), '[]'::json),
             'beneficiaries', COALESCE((
-              SELECT json_agg(json_build_object(
-                'prenom', b.prenom,
-                'nom', b.nom,
-                'sexe', b.sexe,
-                'date_naiss', b.date_naiss,
-                'type_piece', b.type_piece,
-                'num_piece', b.num_piece,
-                'photo_rec_url', b.photo_rec_url,
-                'photo_ver_url', b.photo_ver_url,
-                'signature', b.signature
-              ))
+              SELECT json_agg(to_jsonb(b) - 'id' - 'collective_survey_id' - 'created_at')
               FROM beneficiaries b
               WHERE b.num_parcel = p.num_parcel
             ), '[]'::json)
