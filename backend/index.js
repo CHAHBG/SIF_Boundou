@@ -309,7 +309,7 @@ app.get('/api/parcels/:id', async (req, res) => {
         n_approbation: row.n_approbation,
         conflict: row.conflict,
         conflict_reason: row.conflict_reason,
-        ...row.details // Spread specific details
+        ...(row.details || {}) // Spread specific details, handling null
       }
     };
 
