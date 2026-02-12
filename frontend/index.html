@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Senegal Land Registry - Gestion Foncière 3D</title>
+    <title>SIF Boundou — Géoportail Foncier</title>
 
-    <!-- Local Tailwind CSS -->
-    <link href="./dist/output.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
 
-    <!-- Google basemap is loaded via raster tiles in MapLibre (no JS API key required) -->
+    <!-- MapLibre Draw for geometry editing -->
+    <script src="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js"></script>
+    <link href="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css" rel="stylesheet" />
+
+    <!-- Turf.js for geometry calculations -->
+    <script src="https://unpkg.com/@turf/turf@7/turf.min.js"></script>
 
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -23,770 +26,431 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Ensure proper sizing in iframes */
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --accent: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --navy: #0f172a;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
+        * { box-sizing: border-box; }
+        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
+        body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:#f8fafc; color:#1e293b; }
+
+        #map { width:100%; height:100%; }
+
+        /* ---- HEADER ---- */
+        .app-header {
+            height: 56px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex; align-items: center; padding: 0 16px; gap: 12px;
+            z-index: 40; position: relative;
+            box-shadow: 0 2px 12px rgba(0,0,0,.25);
         }
+        .app-header .logo-group { display:flex; align-items:center; gap:8px; }
+        .app-header .logo-group img { height:32px; border-radius:4px; }
+        .app-header .title-group { display:flex; align-items:center; gap:8px; border-left:1px solid rgba(255,255,255,.15); padding-left:12px; }
+        .app-header .title-group h1 { font-size:1rem; font-weight:700; color:#fff; letter-spacing:.02em; white-space:nowrap; margin:0; }
+        .app-header .title-group .badge { font-size:.6rem; background:var(--primary); color:#fff; padding:2px 8px; border-radius:999px; font-weight:600; }
 
-        /* Fix map container sizing */
-        #map {
-            position: relative;
-            width: 100%;
-            height: 100%;
+        /* ---- SEARCH ---- */
+        .search-container { flex:1; max-width:420px; position:relative; margin:0 auto; }
+        .search-container input {
+            width:100%; padding:8px 14px 8px 38px;
+            background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15);
+            border-radius:10px; color:#fff; font-size:.85rem; transition:all .2s; outline:none;
         }
-
-        /* Custom Scrollbar for Sidebar */
-        .custom-scroll::-webkit-scrollbar {
-            width: 6px;
+        .search-container input::placeholder { color:rgba(255,255,255,.5); }
+        .search-container input:focus { background:rgba(255,255,255,.18); border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.25); }
+        .search-container .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,.4); pointer-events:none; }
+        .search-dropdown {
+            position:absolute; top:calc(100% + 4px); left:0; right:0;
+            background:#fff; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.2);
+            max-height:60vh; overflow-y:auto; display:none; z-index:100; border:1px solid #e2e8f0;
         }
+        .search-dropdown.active { display:block; }
 
-        .custom-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1;
+        /* ---- HEADER BTNS ---- */
+        .header-actions { display:flex; align-items:center; gap:6px; }
+        .header-btn {
+            display:flex; align-items:center; justify-content:center;
+            width:36px; height:36px; border-radius:8px;
+            background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1);
+            color:rgba(255,255,255,.7); cursor:pointer; transition:all .2s;
         }
+        .header-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+        .header-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; }
 
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #c7c7c7;
-            border-radius: 3px;
+        /* ---- STATS BAR ---- */
+        .stats-bar {
+            position:absolute; top:68px; left:50%; transform:translateX(-50%);
+            z-index:30; display:flex; gap:6px;
+            background:rgba(255,255,255,.92); backdrop-filter:blur(12px);
+            padding:6px 10px; border-radius:12px;
+            box-shadow:0 4px 20px rgba(0,0,0,.1); border:1px solid rgba(226,232,240,.6);
         }
-
-        .custom-scroll::-webkit-scrollbar-thumb:hover {
-            background: #a0a0a0;
+        .stat-chip {
+            display:flex; align-items:center; gap:5px;
+            padding:4px 10px; border-radius:8px; font-size:.7rem; font-weight:600;
+            cursor:pointer; transition:all .15s; user-select:none;
         }
+        .stat-chip:hover { transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+        .stat-chip .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .stat-chip .count { font-weight:800; }
 
-        /* Glassmorphism for overlays */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        /* ---- MAP CONTROLS ---- */
+        .map-controls {
+            position:absolute; bottom:24px; right:16px; z-index:30;
+            display:flex; flex-direction:column; gap:6px;
         }
-
-        /* Loading spinner */
-        .loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
+        .map-ctrl-btn {
+            width:40px; height:40px; border-radius:10px;
+            background:rgba(255,255,255,.95); backdrop-filter:blur(8px);
+            border:1px solid #e2e8f0; display:flex; align-items:center;
+            justify-content:center; cursor:pointer; color:#334155;
+            box-shadow:0 2px 8px rgba(0,0,0,.08); transition:all .15s;
         }
+        .map-ctrl-btn:hover { background:#fff; box-shadow:0 4px 16px rgba(0,0,0,.12); color:var(--primary); }
+        .map-ctrl-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .map-ctrl-group { display:flex; flex-direction:column; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+        .map-ctrl-group .map-ctrl-btn { border-radius:0; box-shadow:none; border-bottom:1px solid #e2e8f0; }
+        .map-ctrl-group .map-ctrl-btn:first-child { border-radius:10px 10px 0 0; }
+        .map-ctrl-group .map-ctrl-btn:last-child { border-radius:0 0 10px 10px; border-bottom:none; }
 
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+        /* ---- LEGEND ---- */
+        .legend-panel {
+            position:absolute; bottom:24px; left:16px; z-index:30;
+            background:rgba(255,255,255,.95); backdrop-filter:blur(12px);
+            border-radius:12px; padding:12px 14px;
+            box-shadow:0 4px 20px rgba(0,0,0,.1); border:1px solid rgba(226,232,240,.6);
+            min-width:160px;
         }
+        .legend-title { font-size:.6rem; font-weight:700; text-transform:uppercase; color:#94a3b8; letter-spacing:.08em; margin-bottom:8px; }
+        .legend-item { display:flex; align-items:center; gap:8px; padding:3px 0; cursor:pointer; user-select:none; }
+        .legend-item .ldot { width:10px; height:10px; border-radius:3px; border:1px solid rgba(0,0,0,.08); flex-shrink:0; }
+        .legend-item span { font-size:.75rem; font-weight:500; color:#475569; }
+        .legend-item.off .ldot { opacity:.25; }
+        .legend-item.off span { text-decoration:line-through; opacity:.4; }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Modern Panel Styles */
+        /* ---- DETAIL PANEL ---- */
         .detail-panel {
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            position:fixed; top:56px; right:0; bottom:0;
+            width:min(460px,100vw); z-index:50;
+            background:#fff; border-left:1px solid #e2e8f0;
+            transform:translateX(100%); transition:transform .35s cubic-bezier(.4,0,.2,1);
+            display:flex; flex-direction:column;
+            box-shadow:-8px 0 30px rgba(0,0,0,.08);
+        }
+        .detail-panel.open { transform:translateX(0); }
+        .panel-head {
+            background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+            padding:20px; color:#fff; flex-shrink:0; position:relative;
+        }
+        .panel-head .close-btn {
+            position:absolute; top:12px; right:12px; width:32px; height:32px;
+            border-radius:8px; background:rgba(255,255,255,.1); border:none;
+            color:rgba(255,255,255,.7); cursor:pointer; display:flex;
+            align-items:center; justify-content:center; transition:all .2s;
+        }
+        .panel-head .close-btn:hover { background:rgba(255,255,255,.2); color:#fff; }
+        .panel-body { flex:1; overflow-y:auto; padding:20px; }
+        .panel-body::-webkit-scrollbar { width:5px; }
+        .panel-body::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+
+        /* ---- CARDS ---- */
+        .card { background:#fff; border-radius:14px; padding:18px; border:1px solid #e2e8f0; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.04); transition:all .15s; }
+        .card:hover { box-shadow:0 4px 12px rgba(0,0,0,.06); }
+        .card-title { display:flex; align-items:center; gap:8px; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; margin-bottom:14px; padding-bottom:10px; border-bottom:1.5px solid #f1f5f9; }
+        .card-title i { color:var(--primary); }
+        .field { background:#f8fafc; border-radius:10px; padding:10px 12px; border:1px solid #e2e8f0; }
+        .field-label { font-size:.6rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:#94a3b8; margin-bottom:3px; }
+        .field-value { font-size:.88rem; font-weight:600; color:#1e293b; word-break:break-word; }
+        .field-hl { background:linear-gradient(135deg,#ecfdf5,#d1fae5); border-color:#a7f3d0; }
+        .data-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#f8fafc; border-radius:8px; margin-bottom:6px; border:1px solid #e2e8f0; }
+        .data-row .dlabel { font-size:.78rem; color:#64748b; }
+        .data-row .dvalue { font-size:.85rem; font-weight:600; color:#1e293b; }
+        .data-row .dvalue.mono { font-family:'SF Mono','Consolas',monospace; background:#eff6ff; padding:2px 8px; border-radius:6px; color:var(--primary); font-size:.8rem; }
+
+        /* ---- STATUS BADGE ---- */
+        .status-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:20px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.02em; }
+        .sb-survey { background:#fef3c7; color:#92400e; }
+        .sb-nicad { background:#dbeafe; color:#1e40af; }
+        .sb-deliberee { background:#ede9fe; color:#5b21b6; }
+        .sb-approuvee { background:#d1fae5; color:#065f46; }
+        .sb-default { background:rgba(255,255,255,.15); color:#fff; }
+
+        /* ---- WORKFLOW ---- */
+        .workflow { display:flex; align-items:center; gap:0; margin-top:16px; }
+        .wf-step { display:flex; flex-direction:column; align-items:center; gap:4px; }
+        .wf-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.75rem; background:#334155; color:rgba(255,255,255,.4); transition:all .3s; }
+        .wf-circle.done { background:var(--success); color:#fff; box-shadow:0 2px 8px rgba(16,185,129,.35); }
+        .wf-circle.active { background:var(--primary); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.35); }
+        .wf-label { font-size:.6rem; color:rgba(255,255,255,.6); font-weight:600; }
+        .wf-line { flex:1; height:3px; background:rgba(255,255,255,.15); border-radius:2px; min-width:24px; }
+        .wf-line.done { background:var(--success); }
+
+        /* ---- EDIT TOOLBAR ---- */
+        .edit-toolbar {
+            position:absolute; top:68px; left:50%; transform:translateX(-50%);
+            z-index:40; display:flex; gap:6px; align-items:center;
+            background:rgba(15,23,42,.92); backdrop-filter:blur(12px);
+            padding:8px 14px; border-radius:12px; color:#fff;
+            box-shadow:0 4px 20px rgba(0,0,0,.3);
+        }
+        .edit-toolbar.hidden { display:none; }
+        .edit-toolbar button { padding:6px 14px; border-radius:8px; font-size:.78rem; font-weight:600; border:none; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all .15s; }
+        .edit-toolbar .btn-save { background:var(--success); color:#fff; }
+        .edit-toolbar .btn-save:hover { background:#059669; }
+        .edit-toolbar .btn-cancel { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
+        .edit-toolbar .btn-cancel:hover { background:rgba(255,255,255,.2); }
+
+        /* ---- MODALS ---- */
+        .modal-overlay { position:fixed; inset:0; z-index:100; background:rgba(15,23,42,.6); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; transition:opacity .2s; }
+        .modal-overlay.hidden { display:none; }
+        .modal { background:#fff; border-radius:16px; width:min(440px,90vw); box-shadow:0 25px 50px rgba(0,0,0,.25); overflow:hidden; }
+        .modal-head { padding:20px 24px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; }
+        .modal-head h3 { font-size:1rem; font-weight:700; margin:0; }
+        .modal-body { padding:20px 24px; }
+        .modal-foot { padding:14px 24px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; }
+
+        .login-field { display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+        .login-field label { font-size:.75rem; font-weight:600; color:#64748b; }
+        .login-field input { padding:10px 12px; border:1.5px solid #e2e8f0; border-radius:10px; font-size:.88rem; outline:none; transition:all .2s; }
+        .login-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+
+        /* ---- BUTTONS ---- */
+        .btn { padding:8px 16px; border-radius:10px; font-size:.82rem; font-weight:600; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all .15s; }
+        .btn-primary { background:var(--primary); color:#fff; }
+        .btn-primary:hover { background:var(--primary-dark); }
+        .btn-secondary { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+        .btn-secondary:hover { background:#e2e8f0; }
+        .btn-sm { padding:5px 10px; font-size:.75rem; border-radius:8px; }
+
+        .check-group { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+        .check-item { display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; border:1.5px solid #e2e8f0; cursor:pointer; font-size:.8rem; font-weight:500; transition:all .15s; user-select:none; }
+        .check-item:hover { border-color:var(--primary); }
+        .check-item.active { background:var(--primary-light); border-color:var(--primary); color:var(--primary-dark); }
+        .check-item .cdot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+
+        /* ---- TOASTS ---- */
+        .toast-container { position:fixed; top:68px; right:16px; z-index:200; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+        .toast { padding:12px 16px; border-radius:10px; font-size:.82rem; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,.12); display:flex; align-items:center; gap:8px; transform:translateX(120%); transition:transform .3s cubic-bezier(.4,0,.2,1); max-width:360px; pointer-events:auto; }
+        .toast.show { transform:translateX(0); }
+        .toast.success { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+        .toast.error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+        .toast.info { background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
+
+        .conflict-box { background:linear-gradient(135deg,#fef2f2,#fee2e2); border-left:4px solid #ef4444; border-radius:12px; padding:14px 16px; display:flex; align-items:start; gap:12px; }
+        .photo-card { border-radius:12px; overflow:hidden; background:#f8fafc; border:1.5px solid #e2e8f0; transition:all .2s; }
+        .photo-card:hover { border-color:var(--primary); box-shadow:0 4px 12px rgba(37,99,235,.1); }
+        .photo-card img { width:100%; height:120px; object-fit:cover; }
+        .photo-card .plabel { padding:8px 10px; font-size:.68rem; font-weight:600; color:#64748b; text-align:center; border-top:1px solid #e2e8f0; background:#fff; }
+
+        .spinner-overlay { position:absolute; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; background:rgba(15,23,42,.6); backdrop-filter:blur(4px); }
+        .spinner-overlay.hidden { display:none; }
+        .spinner { width:40px; height:40px; border:4px solid rgba(255,255,255,.2); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .skeleton { background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:8px; }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        @media (max-width:768px) {
+            .stats-bar { display:none; }
+            .detail-panel { width:100vw; }
+            .legend-panel { bottom:8px; left:8px; }
+            .map-controls { bottom:8px; right:8px; }
+            .app-header .title-group { display:none; }
         }
 
-        .panel-header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
-        }
-
-        .info-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            transition: all 0.2s ease;
-            padding: 20px;
-        }
-
-        .info-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transform: translateY(-1px);
-        }
-
-        .info-field {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 14px 16px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .info-field.highlight {
-            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-            border-color: #a7f3d0;
-        }
-
-        .info-label {
-            display: block;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #94a3b8;
-            margin-bottom: 6px;
-        }
-
-        .info-value {
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #1e293b;
-            word-break: break-word;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #64748b;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .section-title i {
-            color: #3b82f6;
-        }
-
-        .workflow-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
-
-        .workflow-step .step-circle {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .workflow-step .step-circle.inactive {
-            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-            color: #64748b;
-        }
-
-        .workflow-step .step-circle.active-survey {
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-            color: white;
-        }
-
-        .workflow-step .step-circle.active-nicad {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-        }
-
-        .workflow-step .step-circle.active-approved {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .workflow-connector {
-            flex: 1;
-            height: 4px;
-            background: linear-gradient(90deg, #e2e8f0, #cbd5e1);
-            border-radius: 2px;
-            margin: 0 8px;
-        }
-
-        .workflow-connector.complete {
-            background: linear-gradient(90deg, #10b981, #3b82f6);
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .status-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .photo-card {
-            border-radius: 14px;
-            overflow: hidden;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-
-        .photo-card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-        }
-
-        .photo-card img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-        }
-
-        .photo-card .photo-label {
-            padding: 10px 14px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #64748b;
-            background: white;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 16px;
-            background: #f8fafc;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .data-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .data-label {
-            font-size: 0.8rem;
-            color: #64748b;
-            font-weight: 500;
-        }
-
-        .data-value {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #1e293b;
-            text-align: right;
-        }
-
-        .data-value.highlight {
-            color: #3b82f6;
-            font-family: 'SF Mono', 'Consolas', monospace;
-            background: #eff6ff;
-            padding: 4px 10px;
-            border-radius: 6px;
-        }
-
-        /* Smooth skeleton loading */
-        .skeleton {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            border-radius: 8px;
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: 200% 0;
-            }
-
-            100% {
-                background-position: -200% 0;
-            }
-        }
-
-        /* Conflict alert modern style */
-        .conflict-alert {
-            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            border-left: 4px solid #ef4444;
-            border-radius: 12px;
-            padding: 16px;
-        }
+        .maplibregl-ctrl-top-left { top:8px; left:8px; }
+        .maplibregl-ctrl-group { border-radius:10px !important; box-shadow:0 2px 8px rgba(0,0,0,.08) !important; }
     </style>
 </head>
 
-<body class="h-screen w-screen overflow-hidden flex flex-col text-slate-800 bg-slate-100">
-
-    <!-- Loading Indicator -->
-    <div id="loadingIndicator" class="loading-spinner">
-        <div class="spinner"></div>
-        <p class="text-white text-sm mt-3 text-center font-medium">Chargement des parcelles...</p>
-    </div>
+<body class="flex flex-col h-screen">
 
     <!-- HEADER -->
-    <header class="w-full bg-white shadow-md z-30 flex items-center justify-between px-4 py-2 h-16 relative">
-        <!-- Left: Logos & Title -->
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
-                <img src="assets/logos/logo_senegal.jpg" alt="Senegal" class="h-8 object-contain">
-                <img src="assets/logos/logo_procasef.jpg" alt="PROCASEF" class="h-8 object-contain">
-                <img src="assets/logos/logo_bet.jpg" alt="BET Plus" class="h-8 object-contain">
-            </div>
-            <div class="hidden md:flex items-center gap-2 border-l border-slate-200 pl-4">
-                <i data-lucide="map" class="text-navy w-5 h-5"></i>
-                <h1 class="text-lg font-bold text-navy">SIF BOUNDOU</h1>
+    <header class="app-header">
+        <div class="logo-group">
+            <img src="assets/logos/logo_senegal.jpg" alt="Sénégal">
+            <img src="assets/logos/logo_procasef.jpg" alt="PROCASEF">
+            <img src="assets/logos/logo_bet.jpg" alt="BET Plus">
+        </div>
+        <div class="title-group">
+            <h1>SIF BOUNDOU</h1>
+            <span class="badge">Géoportail</span>
+        </div>
+
+        <div class="search-container">
+            <i data-lucide="search" class="search-icon" style="width:16px;height:16px;"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher parcelle, NICAD, nom..." autocomplete="off">
+            <div id="searchDropdown" class="search-dropdown">
+                <div id="searchResults" class="p-2 space-y-1"></div>
             </div>
         </div>
 
-        <!-- Center: Search Bar -->
-        <div class="flex-1 max-w-md ml-auto mr-4 relative group">
-            <div class="relative">
-                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-                <input type="text" id="searchInput" placeholder="Rechercher (N° Parcelle, Nom, NICAD)..."
-                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-medium focus:border-blue-medium outline-none transition-all shadow-sm">
-            </div>
-
-            <!-- Search Results Dropdown -->
-            <div id="searchResultsDropdown"
-                class="absolute top-full left-0 w-full bg-white shadow-xl rounded-b-lg border border-t-0 border-slate-200 max-h-[60vh] overflow-y-auto hidden z-50">
-                <div id="parcelList" class="p-2 space-y-2">
-                    <!-- Results will be injected here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Right: Stats/Info -->
-        <div class="flex items-center gap-3">
-            <div class="text-xs text-right hidden lg:block">
-                <p id="viewModeIndicator" class="font-bold text-navy">Vue 3D Active</p>
-                <p class="text-slate-500 flex items-center justify-end gap-1"><span
-                        class="w-2 h-2 rounded-full bg-green-marker"></span> En ligne</p>
-            </div>
+        <div class="header-actions">
+            <button class="header-btn" id="btnExport" title="Exporter les parcelles">
+                <i data-lucide="download" style="width:18px;height:18px;"></i>
+            </button>
+            <button class="header-btn" id="btnAdmin" title="Connexion Admin">
+                <i data-lucide="shield" style="width:18px;height:18px;"></i>
+            </button>
+            <button class="header-btn active hidden" id="btnAdminLogout" title="Déconnexion Admin">
+                <i data-lucide="log-out" style="width:18px;height:18px;"></i>
+            </button>
         </div>
     </header>
 
-    <!-- MAIN MAP AREA -->
-    <main class="flex-1 relative w-full h-[calc(100vh-64px)]">
+    <!-- MAIN -->
+    <main class="flex-1 relative">
+        <div id="loadingOverlay" class="spinner-overlay">
+            <div class="text-center">
+                <div class="spinner mx-auto mb-3"></div>
+                <p class="text-white text-sm font-medium">Chargement des parcelles...</p>
+            </div>
+        </div>
+
         <div id="map" class="w-full h-full"></div>
 
-        <!-- Legend Overlay (Bottom Left) -->
-        <div
-            class="absolute bottom-6 left-6 z-[1000] glass-panel p-4 rounded-lg shadow-lg border border-white/20 max-w-xs hidden md:block">
-            <h4 class="text-xs font-bold uppercase text-navy mb-2 tracking-wider">Légende</h4>
-            <div id="legendContent" class="space-y-2 text-sm">
-                <!-- Content populated by JS -->
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-chip" onclick="app.filterByStatus('all')" title="Total">
+                <span class="dot" style="background:#64748b;"></span>
+                <span>Total</span>
+                <span class="count" id="statTotal">--</span>
+            </div>
+            <div class="stat-chip" onclick="app.filterByStatus('Survey')" title="Enquêtées">
+                <span class="dot" style="background:#eab308;"></span>
+                <span>Enquêtée</span>
+                <span class="count" id="statSurvey">--</span>
+            </div>
+            <div class="stat-chip" onclick="app.filterByStatus('NICAD')" title="NICAD">
+                <span class="dot" style="background:#3b82f6;"></span>
+                <span>NICAD</span>
+                <span class="count" id="statNicad">--</span>
+            </div>
+            <div class="stat-chip" onclick="app.filterByStatus('deliberee')" title="Délibérées">
+                <span class="dot" style="background:#8b5cf6;"></span>
+                <span>Délibérée</span>
+                <span class="count" id="statDeliberee">--</span>
+            </div>
+            <div class="stat-chip" onclick="app.filterByStatus('approuvee')" title="Approuvées">
+                <span class="dot" style="background:#10b981;"></span>
+                <span>Approuvée</span>
+                <span class="count" id="statApprouvee">--</span>
             </div>
         </div>
 
-        <!-- Map Controls (Bottom Right) -->
-        <div class="absolute bottom-6 right-6 z-[3000] flex flex-col gap-2">
-            <!-- Basemap Switcher -->
-            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden flex flex-col">
-                <button onclick="app.switchBasemap('osm')"
-                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Plan (OSM)">
-                    <i data-lucide="map" class="w-5 h-5 text-navy"></i>
-                </button>
-                <button onclick="app.switchBasemap('satellite')"
-                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Satellite (Esri)">
-                    <i data-lucide="satellite" class="w-5 h-5 text-navy"></i>
-                </button>
-                <button onclick="app.switchBasemap('google-roadmap')"
-                    class="p-2 hover:bg-slate-100 border-b border-slate-100 transition-colors" title="Google Maps">
-                    <span class="font-bold text-xs text-navy">G</span>
-                </button>
-                <button onclick="app.switchBasemap('google-satellite')" class="p-2 hover:bg-slate-100 transition-colors"
-                    title="Google Satellite">
-                    <span class="font-bold text-xs text-navy">GS</span>
-                </button>
-            </div>
-
-            <!-- 3D/2D Toggle -->
-            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
-                <button onclick="app.toggle3D()" class="p-2 hover:bg-slate-100 transition-colors"
-                    title="Basculer 3D/2D">
-                    <i data-lucide="box" class="w-5 h-5 text-navy"></i>
-                </button>
-            </div>
-
-            <!-- Color By Type Toggle -->
-            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
-                <button onclick="app.toggleColorByType()" class="p-2 hover:bg-slate-100 transition-colors"
-                    title="Couleur par Type">
-                    <i data-lucide="palette" class="w-5 h-5 text-navy"></i>
-                </button>
-            </div>
-
-            <!-- Rotation Reset -->
-            <div class="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
-                <button onclick="app.resetBearing()" class="p-2 hover:bg-slate-100 transition-colors"
-                    title="Réinitialiser la rotation (Ctrl+Glisser pour tourner la carte)">
-                    <i data-lucide="compass" class="w-5 h-5 text-navy"></i>
-                </button>
-            </div>
+        <!-- Edit Geometry Toolbar -->
+        <div class="edit-toolbar hidden" id="editToolbar">
+            <i data-lucide="pen-tool" style="width:16px;height:16px;color:var(--primary);"></i>
+            <span style="font-size:.82rem;font-weight:600;">Mode Édition</span>
+            <button class="btn-save" id="btnSaveGeometry"><i data-lucide="check" style="width:14px;height:14px;"></i> Sauvegarder</button>
+            <button class="btn-cancel" id="btnCancelEdit"><i data-lucide="x" style="width:14px;height:14px;"></i> Annuler</button>
         </div>
 
-        <!-- Rotation Help Tooltip -->
-        <div class="absolute top-20 left-4 z-[999] bg-navy/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg text-sm max-w-xs hidden md:block"
-            id="rotationTip">
-            <div class="flex items-start gap-2">
-                <i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
-                <div>
-                    <p class="font-semibold mb-1">Navigation 3D</p>
-                    <ul class="text-xs space-y-1 opacity-90">
-                        <li>• <strong>Ctrl + Glisser</strong> : Rotation</li>
-                        <li>• <strong>Shift + Glisser</strong> : Inclinaison</li>
-                        <li>• <strong>Molette</strong> : Zoom</li>
-                    </ul>
-                </div>
-                <button onclick="document.getElementById('rotationTip').classList.add('hidden')"
-                    class="text-white/70 hover:text-white">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
+        <!-- Legend -->
+        <div class="legend-panel" id="legendPanel">
+            <div class="legend-title">Légende</div>
+            <div id="legendContent"></div>
         </div>
 
-        <!-- Detail Panel (Slide-in from right) - Modern Design -->
-        <div id="detailPanel"
-            class="detail-panel fixed right-0 top-0 h-full w-full md:w-[480px] shadow-2xl z-[2000] transform translate-x-full transition-transform duration-300 ease-out overflow-hidden mt-16 md:mt-0 md:h-[calc(100vh-64px)] md:top-16 border-l border-slate-200/50">
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <div class="map-ctrl-group">
+                <button class="map-ctrl-btn" onclick="app.switchBasemap('osm')" title="OpenStreetMap"><i data-lucide="map" style="width:18px;height:18px;"></i></button>
+                <button class="map-ctrl-btn" onclick="app.switchBasemap('satellite')" title="Satellite Esri"><i data-lucide="satellite" style="width:18px;height:18px;"></i></button>
+                <button class="map-ctrl-btn" onclick="app.switchBasemap('google-satellite')" title="Google Satellite"><span style="font-weight:800;font-size:.7rem;">GS</span></button>
+            </div>
+            <button class="map-ctrl-btn" id="btn3D" onclick="app.toggle3D()" title="Vue 3D / 2D"><i data-lucide="box" style="width:18px;height:18px;"></i></button>
+            <button class="map-ctrl-btn" onclick="app.toggleColorMode()" title="Mode couleur"><i data-lucide="palette" style="width:18px;height:18px;"></i></button>
+            <button class="map-ctrl-btn" onclick="app.resetView()" title="Reset vue"><i data-lucide="compass" style="width:18px;height:18px;"></i></button>
+        </div>
 
-            <!-- Panel Header - Gradient Background -->
-            <div class="panel-header sticky top-0 text-white p-5 z-10">
-                <!-- Close Button -->
-                <button onclick="app.closePanel()"
-                    class="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all duration-200">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+        <!-- Detail Panel -->
+        <div class="detail-panel" id="detailPanel">
+            <div class="panel-head" id="panelHead">
+                <button class="close-btn" onclick="app.closePanel()"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+                <p style="font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.5);margin:0 0 4px;">Parcelle</p>
+                <h2 id="panelTitle" style="font-size:1.4rem;font-weight:800;margin:0;">--</h2>
+                <div id="panelStatusBadge" class="status-badge sb-default" style="margin-top:10px;">--</div>
+                <div class="workflow" id="panelWorkflow">
+                    <div class="wf-step"><div class="wf-circle done" id="wf1"><i data-lucide="clipboard-check" style="width:16px;height:16px;"></i></div><span class="wf-label">Enquête</span></div>
+                    <div class="wf-line" id="wfLine1"></div>
+                    <div class="wf-step"><div class="wf-circle" id="wf2">2</div><span class="wf-label">NICAD</span></div>
+                    <div class="wf-line" id="wfLine2"></div>
+                    <div class="wf-step"><div class="wf-circle" id="wf3">3</div><span class="wf-label">Approuvé</span></div>
+                </div>
+                <button class="btn btn-sm hidden" id="btnEditGeometry" style="margin-top:12px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;">
+                    <i data-lucide="pen-tool" style="width:14px;height:14px;"></i> Modifier la géométrie
                 </button>
-
-                <!-- Parcel Number -->
-                <div class="mb-4">
-                    <p class="text-white/60 text-xs font-medium uppercase tracking-wider mb-1">Parcelle</p>
-                    <h2 id="panelTitle" class="text-2xl font-bold tracking-tight">--</h2>
-                </div>
-
-                <!-- Status Badge -->
-                <span id="panelStatus" class="status-badge bg-white/20 text-white">Chargement...</span>
-
-                <!-- Workflow Progress - Modern -->
-                <div class="flex items-center mt-6">
-                    <div class="workflow-step">
-                        <div class="step-circle active-survey">
-                            <i data-lucide="clipboard-check" class="w-5 h-5"></i>
-                        </div>
-                        <span class="text-xs mt-2 text-white/80 font-medium">Enquête</span>
-                    </div>
-                    <div id="connector1" class="workflow-connector"></div>
-                    <div id="step2" class="workflow-step">
-                        <div class="step-circle inactive">
-                            <span>2</span>
-                        </div>
-                        <span class="text-xs mt-2 text-white/80 font-medium">NICAD</span>
-                    </div>
-                    <div id="connector2" class="workflow-connector"></div>
-                    <div id="step3" class="workflow-step">
-                        <div class="step-circle inactive">
-                            <span>3</span>
-                        </div>
-                        <span class="text-xs mt-2 text-white/80 font-medium">Approuvé</span>
-                    </div>
-                </div>
             </div>
-
-            <!-- Panel Content - Scrollable -->
-            <div class="overflow-y-auto h-[calc(100%-220px)] custom-scroll">
-                <div class="p-6 space-y-6">
-
-                    <!-- Conflict Alert -->
-                    <div id="conflictAlert" class="hidden conflict-alert">
-                        <div class="flex items-start gap-4">
-                            <div
-                                class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                                <i data-lucide="alert-triangle" class="w-6 h-6 text-red-500"></i>
-                            </div>
-                            <div class="pt-1">
-                                <h4 class="font-bold text-red-800 text-base">Conflit Signalé</h4>
-                                <p id="panelConflictText" class="text-sm text-red-700 mt-2"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Main Content Area -->
-                    <div id="panelContentLeft" class="space-y-6">
-                        <!-- Content populated by JavaScript -->
-                    </div>
-
-                    <!-- Images Section -->
-                    <div class="mt-8">
-                        <div class="section-title">
-                            <i data-lucide="image" class="w-4 h-4"></i>
-                            <span>Documents</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-5">
-                            <div class="photo-card">
-                                <img id="panelPhotoRecto"
-                                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='14'%3ENon disponible%3C/text%3E%3C/svg%3E"
-                                    alt="Photo Recto">
-                                <div class="photo-label">
-                                    <i data-lucide="credit-card" class="w-3.5 h-3.5 inline mr-1.5"></i>
-                                    CNI Recto
-                                </div>
-                            </div>
-                            <div class="photo-card">
-                                <img id="panelPhotoVerso"
-                                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f1f5f9' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%2394a3b8' font-family='sans-serif' font-size='14'%3ENon disponible%3C/text%3E%3C/svg%3E"
-                                    alt="Photo Verso">
-                                <div class="photo-label">
-                                    <i data-lucide="credit-card" class="w-3.5 h-3.5 inline mr-1.5"></i>
-                                    CNI Verso
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+            <div class="panel-body" id="panelBody"></div>
         </div>
     </main>
 
-    <!-- Tutorial Modal (Professional Design) -->
-    <div id="tutorialModal"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden transition-opacity duration-300">
-        <div
-            class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 overflow-hidden transform transition-all duration-300 scale-100">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-slate-800 to-slate-900 p-8 text-white relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-4 opacity-10">
-                    <i data-lucide="map" class="w-32 h-32"></i>
+    <!-- Export Modal -->
+    <div class="modal-overlay hidden" id="exportModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Exporter les Parcelles</h3>
+                <button onclick="app.closeExportModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:.82rem;color:#64748b;margin-bottom:12px;">Sélectionnez les statuts à exporter :</p>
+                <div class="check-group" id="exportStatusGroup">
+                    <label class="check-item active" data-status="Survey"><span class="cdot" style="background:#eab308;"></span> Enquêtée</label>
+                    <label class="check-item active" data-status="NICAD"><span class="cdot" style="background:#3b82f6;"></span> NICAD</label>
+                    <label class="check-item active" data-status="deliberee"><span class="cdot" style="background:#8b5cf6;"></span> Délibérée</label>
+                    <label class="check-item active" data-status="approuvee"><span class="cdot" style="background:#10b981;"></span> Approuvée</label>
                 </div>
-                <div class="relative z-10">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div class="p-2 bg-white/10 rounded-lg backdrop-blur-md">
-                            <i data-lucide="info" class="w-6 h-6 text-blue-400"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold tracking-tight">Bienvenue sur SIF Boundou</h2>
-                    </div>
-                    <p class="text-slate-300 text-sm max-w-lg">
-                        Votre plateforme de gestion foncière unifiée. Voici un guide rapide pour maîtriser l'interface.
-                    </p>
+                <p style="font-size:.82rem;color:#64748b;margin:14px 0 8px;">Format :</p>
+                <div class="check-group" id="exportFormatGroup">
+                    <label class="check-item active" data-format="geojson">GeoJSON</label>
+                    <label class="check-item" data-format="xlsx">Excel (.xlsx)</label>
                 </div>
             </div>
-
-            <!-- Content Grid -->
-            <div class="p-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Feature 1 -->
-                    <div
-                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
-                        <div
-                            class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                            <i data-lucide="search" class="w-5 h-5 text-blue-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm mb-1">Recherche Intelligente</h3>
-                            <p class="text-xs text-slate-500 leading-relaxed">Trouvez rapidement une parcelle par son
-                                numéro, nom du propriétaire ou code NICAD.</p>
-                        </div>
-                    </div>
-
-                    <!-- Feature 2 -->
-                    <div
-                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
-                        <div
-                            class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
-                            <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm mb-1">Fonds de Carte</h3>
-                            <p class="text-xs text-slate-500 leading-relaxed">Adaptez votre vue : Plan (OSM), Satellite
-                                ou Google Hybrid pour plus de détails.</p>
-                        </div>
-                    </div>
-
-                    <!-- Feature 3 -->
-                    <div
-                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
-                        <div
-                            class="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-violet-100 transition-colors">
-                            <i data-lucide="box" class="w-5 h-5 text-violet-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm mb-1">Immersion 3D</h3>
-                            <p class="text-xs text-slate-500 leading-relaxed">Activez la 3D pour visualiser les volumes
-                                bâtis et l'urbanisme en relief.</p>
-                        </div>
-                    </div>
-
-                    <!-- Feature 4 -->
-                    <div
-                        class="flex items-start gap-4 p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
-                        <div
-                            class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 transition-colors">
-                            <i data-lucide="tag" class="w-5 h-5 text-amber-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm mb-1">Légende Dynamique</h3>
-                            <p class="text-xs text-slate-500 leading-relaxed">Colorez la carte par statut juridique ou
-                                par type d'usage pour une analyse rapide.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-6 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-center gap-4">
-                    <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-indigo-600"></i>
-                    </div>
-                    <p class="text-xs text-indigo-800 font-medium">
-                        <span class="font-bold">Astuce Pro :</span> Cliquez sur n'importe quelle parcelle pour accéder à
-                        sa fiche signalétique complète (photos, surface, historique).
-                    </p>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="px-8 pb-8 flex items-center justify-between border-t border-slate-100 pt-6">
-                <label
-                    class="flex items-center gap-2 text-xs font-medium text-slate-500 cursor-pointer hover:text-slate-700 transition-colors">
-                    <div class="relative flex items-center">
-                        <input type="checkbox" id="dontShowAgain"
-                            class="peer h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20 transition-all">
-                    </div>
-                    Ne plus afficher ce guide
-                </label>
-                <button onclick="closeTutorial()"
-                    class="px-8 py-3 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
-                    Accéder à la carte
-                </button>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="app.closeExportModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="app.doExport()"><i data-lucide="download" style="width:16px;height:16px;"></i> Exporter</button>
             </div>
         </div>
     </div>
 
-    <!-- Custom Tooltip Container -->
-    <div id="customTooltip"
-        class="fixed z-[10000] px-3 py-2 bg-slate-900/90 text-white text-xs font-medium rounded shadow-lg pointer-events-none transition-opacity duration-200 opacity-0 backdrop-blur-sm whitespace-nowrap">
+    <!-- Login Modal -->
+    <div class="modal-overlay hidden" id="loginModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Connexion Administrateur</h3>
+                <button onclick="app.closeLoginModal()" style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;"><i data-lucide="x" style="width:20px;height:20px;"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="login-field">
+                    <label>Nom d'utilisateur</label>
+                    <input type="text" id="loginUsername" placeholder="Identifiant">
+                </div>
+                <div class="login-field">
+                    <label>Mot de passe</label>
+                    <input type="password" id="loginPassword" placeholder="Mot de passe">
+                </div>
+                <p id="loginError" class="hidden" style="color:var(--danger);font-size:.82rem;margin-top:8px;"></p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="app.closeLoginModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="app.doLogin()" id="loginBtn">Se connecter</button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        // --- Tooltip Logic ---
-        const tooltip = document.getElementById('customTooltip');
-
-        function showTooltip(e, text) {
-            tooltip.textContent = text;
-            tooltip.style.opacity = '1';
-            updateTooltipPos(e);
-        }
-
-        function hideTooltip() {
-            tooltip.style.opacity = '0';
-        }
-
-        function updateTooltipPos(e) {
-            const offset = 10;
-            let left = e.clientX + offset;
-            let top = e.clientY + offset;
-
-            // Boundary checks
-            const rect = tooltip.getBoundingClientRect();
-            if (left + rect.width > window.innerWidth) left = e.clientX - rect.width - offset;
-            if (top + rect.height > window.innerHeight) top = e.clientY - rect.height - offset;
-
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-        }
-
-        // Initialize tooltips for all elements with 'title' attribute
-        document.addEventListener('mouseover', (e) => {
-            const target = e.target.closest('[title]');
-            if (target && target.getAttribute('title')) {
-                const text = target.getAttribute('title');
-                target.setAttribute('data-original-title', text);
-                target.removeAttribute('title'); // Remove default browser tooltip
-                showTooltip(e, text);
-
-                target.addEventListener('mousemove', updateTooltipPos);
-                target.addEventListener('mouseleave', function cleanup() {
-                    hideTooltip();
-                    target.setAttribute('title', text); // Restore for accessibility
-                    target.removeEventListener('mousemove', updateTooltipPos);
-                    target.removeEventListener('mouseleave', cleanup);
-                }, { once: true });
-            }
-        });
-
-        // --- Tutorial Modal Functions ---
-        function showTutorial() {
-            const modal = document.getElementById('tutorialModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                lucide.createIcons();
-            }
-        }
-
-        function closeTutorial() {
-            const modal = document.getElementById('tutorialModal');
-            const dontShow = document.getElementById('dontShowAgain');
-            if (dontShow && dontShow.checked) {
-                localStorage.setItem('sif_tutorial_dismissed', 'true');
-            }
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-        }
-
-        // Show tutorial on first load
-        document.addEventListener('DOMContentLoaded', function () {
-            if (!localStorage.getItem('sif_tutorial_dismissed')) {
-                setTimeout(showTutorial, 500);
-            }
-        });
-    </script>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
-
 </html>
