@@ -10,6 +10,7 @@ window.app = {
     currentStyle: 'osm',
     is3D: false,
     colorByType: false,
+    editingExcludeId: null,
     adminToken: null,
     editingParcel: null,
     originalGeometry: null,
@@ -226,6 +227,12 @@ window.app = {
             if (this.visibleLayers.approuvee) { vis.push('approuvee'); vis.push('Approved'); }
             filter = vis.length === 0 ? ['==', 'status', '__none__'] : vis.length >= 5 ? null : ['in', ['get', 'status'], ['literal', vis]];
         }
+
+        if (this.editingExcludeId !== null) {
+            const excludeEditedParcel = ['!=', ['get', 'id'], this.editingExcludeId];
+            filter = filter ? ['all', filter, excludeEditedParcel] : excludeEditedParcel;
+        }
+
         this.map.setFilter('parcels-3d', filter);
         if (this.map.getLayer('parcels-outline')) this.map.setFilter('parcels-outline', filter);
     },
@@ -616,10 +623,9 @@ window.app = {
         if (saveBtn) saveBtn.disabled = false;
         lucide.createIcons();
 
-        // Hide parcel layers so only Draw shows
-        ['parcels-3d', 'parcels-outline', 'parcels-highlight'].forEach(l => {
-            if (this.map.getLayer(l)) this.map.setLayoutProperty(l, 'visibility', 'none');
-        });
+        // Keep surrounding parcels visible; only exclude edited parcel to avoid overlap confusion
+        this.editingExcludeId = Number(feature.properties.id);
+        this.applyLayerFilters();
 
         // Initialize MapboxDraw with QGIS-like green styling
         this.draw = new MapboxDraw({
@@ -845,15 +851,12 @@ window.app = {
         this._drawFeatureId = null;
         this.editingParcel = null;
         this.originalGeometry = null;
+        this.editingExcludeId = null;
 
         // Restore UI
         document.getElementById('editToolbar').classList.add('hidden');
         document.getElementById('statsBar').style.display = '';
-
-        // Show parcel layers again
-        ['parcels-3d', 'parcels-outline'].forEach(l => {
-            if (this.map.getLayer(l)) this.map.setLayoutProperty(l, 'visibility', 'visible');
-        });
+        this.applyLayerFilters();
     },
 
     // ======================= AUTH =======================
