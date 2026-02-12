@@ -22,16 +22,29 @@ const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || process.env.ADMIN_PASS 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync(ADMIN_PASSWORD_RAW, 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_change_me';
 
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
+const allowedOrigins = [
+  process.env.CORS_ORIGINS || '',
+  process.env.CORS_ORIGIN || ''
+]
+  .flatMap((value) => value.split(','))
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const allowNullOrigin = (process.env.CORS_ALLOW_NULL_ORIGIN || '').toLowerCase() === 'true';
+
+function isOriginAllowed(origin) {
+  if (allowedOrigins.length === 0) return true;
+  if (allowedOrigins.includes('*')) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (origin === 'null' && (allowNullOrigin || allowedOrigins.includes('null'))) return true;
+  return false;
+}
 
 // CORS Configuration
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) { callback(null, true); return; }
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) { callback(null, true); return; }
+    if (isOriginAllowed(origin)) { callback(null, true); return; }
     callback(new Error('CORS origin not allowed'));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
