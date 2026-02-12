@@ -273,6 +273,7 @@ app.get('/api/parcels/:id', async (req, res) => {
           WHEN c.num_parcel IS NOT NULL THEN 'collective'
           ELSE 'unknown'
         END AS type,
+        COALESCE(i.num_decise, c.num_decise) AS num_decise_survey,
         COALESCE(i.vocation, c.vocation) AS vocation,
         COALESCE(i.sup_reelle, c.sup_reelle) AS superficie,
         p.superficie AS superficie_parcelle,
@@ -330,6 +331,11 @@ app.get('/api/parcels/:id', async (req, res) => {
     }
 
     const row = result.rows[0];
+    const fallbackRegion = process.env.DEFAULT_REGION || 'Tambacounda';
+    const fallbackDepartment = process.env.DEFAULT_DEPARTMENT || 'Tambacounda';
+    const fallbackArrondissement = process.env.DEFAULT_ARRONDISSEMENT || 'Koussanar';
+    const fallbackCommune = process.env.DEFAULT_COMMUNE || 'Boundou';
+    const fallbackValue = 'Non renseigné';
 
     // Construct GeoJSON Feature
     const feature = {
@@ -341,18 +347,18 @@ app.get('/api/parcels/:id', async (req, res) => {
         status: row.status,
         type: row.type,
         nicad: row.nicad,
-        region: row.region_senegal,
-        department: row.department_senegal,
-        arrondissement: row.arrondissement_senegal,
-        commune: row.commune_senegal,
-        village: row.village,
+        region: row.region_senegal || fallbackRegion,
+        department: row.department_senegal || fallbackDepartment,
+        arrondissement: row.arrondissement_senegal || fallbackArrondissement,
+        commune: row.commune_senegal || fallbackCommune,
+        village: row.village || fallbackValue,
         // Always provide vocation and superficie fields at top level
         vocation: row.vocation || (row.details && row.details.vocation) || '',
         superficie_reelle: (row.details && row.details.superficie_reelle) || row.superficie || row.superficie_parcelle || '',
         surface: row.superficie || row.superficie_parcelle || (row.details && row.details.superficie_reelle) || '',
         centroid: row.centroid,
-        n_deliberation: row.n_deliberation,
-        n_approbation: row.n_approbation,
+        n_deliberation: row.n_deliberation || row.num_decise_survey || fallbackValue,
+        n_approbation: row.n_approbation || row.num_decise_survey || fallbackValue,
         conflict: row.conflict,
         conflict_reason: row.conflict_reason,
         ...(row.details || {}) // Spread specific details, handling null
