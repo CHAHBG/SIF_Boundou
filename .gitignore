@@ -7,3 +7,5 @@ coverage/
 *.log
 dump.sql
 backend/dump.sql
+ 
+**/__pycache__/

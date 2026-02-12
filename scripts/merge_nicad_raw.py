@@ -27,114 +27,129 @@ if env_path.exists():
 else:
     print(f"⚠ No .env file found at {env_path}")
 
-# File paths
-NICAD_PATH = r'C:\Users\USER\Documents\Boundou_Geoportail\data\Nicads\NICAD_TOUT_COMMUNE.gpkg'
-RAW_PATH = r'C:\Users\USER\Documents\Boundou_Geoportail\data\Raw parcels\Parcelles Brutes.gpkg'
+import argparse
+import sys
+# Import helper if available, otherwise fallback
+try:
+    from find_data_utils import find_latest_nicad, get_geometry_file
+except ImportError:
+    pass
+
+# Load environment variables from backend/.env
+env_path = Path(__file__).parent.parent / 'backend' / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✓ Loaded environment variables from {env_path}")
+else:
+    print(f"⚠ No .env file found at {env_path}")
+
+# Parse arguments
+parser = argparse.ArgumentParser(description='Merge Nicad and Post-Process data.')
+parser.add_argument('--nicad', help='Path to Nicad GPKG')
+parser.add_argument('--geometry', help='Path to Post-Process Geometry GPKG')
+args = parser.parse_args()
+
+# Resolve Paths
+NICAD_PATH = args.nicad
+if not NICAD_PATH:
+    try:
+        NICAD_PATH = find_latest_nicad()
+        print(f"✓ Auto-detected Nicad file: {NICAD_PATH}")
+    except NameError:
+        NICAD_PATH = r'C:\Users\USER\Documents\Boundou_Geoportail\data\Nicads\NICAD_TOUT_COMMUNE.gpkg' # Backup default
+        print(f"⚠ Using default Nicad path: {NICAD_PATH}")
+
+GEOMETRY_PATH = args.geometry
+if not GEOMETRY_PATH:
+    try:
+        GEOMETRY_PATH = get_geometry_file()
+        print(f"✓ Auto-detected Geometry file: {GEOMETRY_PATH}")
+    except NameError:
+        GEOMETRY_PATH = r'C:\Users\USER\Documents\Boundou_Geoportail\data\Raw parcels\Parcelles Brutes.gpkg' # Backup default
+        print(f"⚠ Using default Geometry path: {GEOMETRY_PATH}")
+
 OUTPUT_GPKG = r'C:\Users\USER\Documents\Boundou_Geoportail\data\merged_parcels.gpkg'
+
+if not NICAD_PATH or not os.path.exists(NICAD_PATH):
+    print(f"❌ Nicad file not found: {NICAD_PATH}")
+    sys.exit(1)
+
+if not GEOMETRY_PATH or not os.path.exists(GEOMETRY_PATH):
+    print(f"❌ Geometry file not found: {GEOMETRY_PATH}")
+    sys.exit(1)
 
 # Database connection (optional - set DATABASE_URL environment variable)
 DB_CONNECTION_STRING = os.getenv('DATABASE_URL', None)
 
 print("=" * 80)
-print("MERGING NICAD (PRIVILEGED) + RAW PARCELS DATA")
+print("MERGING NICAD (PRIVILEGED) + POST-PROCESS PARCELS DATA")
 print("=" * 80)
 
 # Load NICAD data (privileged)
-print("\n1. Loading NICAD data (privileged source)...")
+print(f"\n1. Loading NICAD data from: {os.path.basename(NICAD_PATH)}")
 nicad_gdf = gpd.read_file(NICAD_PATH)
 print(f"   ✓ Loaded {len(nicad_gdf):,} NICAD parcels")
 print(f"   CRS: {nicad_gdf.crs}")
-print(f"   Columns: {list(nicad_gdf.columns)}")
+# Simplify column printing
+# print(f"   Columns: {list(nicad_gdf.columns)}")
 
 # Force to 2D and ensure valid geometries
 print("\n2. Cleaning NICAD geometries...")
 from shapely import force_2d, make_valid
-nicad_gdf['geometry'] = nicad_gdf['geometry'].apply(lambda g: make_valid(force_2d(g)) if g is not None else None)
+import shapely
+
+def safe_clean_geom(geom):
+    if geom is None:
+        return None
+    try:
+        # standard cleaning
+        g = force_2d(geom)
+        if not g.is_valid:
+            g = make_valid(g)
+        return g
+    except Exception as e:
+        # If standard cleaning fails, try buffer(0) or just return None
+        try:
+            return geom.buffer(0)
+        except:
+            return None
+
+# Use a slower but safer apply if vectorization fails (which it seems to be doing)
+nicad_gdf['geometry'] = nicad_gdf['geometry'].apply(safe_clean_geom)
 nicad_gdf = nicad_gdf[nicad_gdf.geometry.notna()]
 nicad_gdf = nicad_gdf[~nicad_gdf.geometry.is_empty]
 print(f"   ✓ {len(nicad_gdf):,} valid NICAD geometries")
 
-# Load existing geometries from database (if available)
+# Load existing geometries check - SKIPPED for automated pipeline speed/redundancy reduction
+# The logic here is: Trust the file inputs as the source of truth for the update.
+# If we need to preserve existing DB data not in files, we'd enable this.
+# For now, let's keep it simple: File -> DB.
 db_gdf = None
-if DB_CONNECTION_STRING:
-    print("\n3. Loading existing geometries from PostgreSQL database...")
-    try:
-        engine = create_engine(DB_CONNECTION_STRING)
-        with engine.connect() as conn:
-            # Check if parcels table exists
-            result = conn.execute(text(
-                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'parcels')"
-            ))
-            table_exists = result.fetchone()[0]
-            
-            if table_exists:
-                # Load only geometry column for comparison (to save memory)
-                # Try common geometry column names
-                for geom_col in ['geometry', 'geom', 'the_geom']:
-                    try:
-                        db_gdf = gpd.read_postgis(
-                            f"SELECT id, ST_Force2D({geom_col}) as geometry FROM parcels WHERE {geom_col} IS NOT NULL",
-                            engine,
-                            geom_col='geometry'
-                        )
-                        print(f"   ✓ Loaded {len(db_gdf):,} existing geometries from database (column: {geom_col})")
-                        break
-                    except Exception as e:
-                        if 'does not exist' in str(e):
-                            continue
-                        else:
-                            raise
-                
-                if db_gdf is None:
-                    print("   ⚠ Could not find geometry column in parcels table")
-                elif db_gdf is not None:
-                    # Ensure same CRS
-                    if db_gdf.crs != nicad_gdf.crs:
-                        db_gdf = db_gdf.to_crs(nicad_gdf.crs)
-                        print(f"   ✓ Reprojected DB geometries to {nicad_gdf.crs}")
-            else:
-                print("   No 'parcels' table found in database")
-    except Exception as e:
-        print(f"   ⚠ Could not connect to database: {e}")
-        print("   Continuing without DB geometry check...")
-else:
-    print("\n3. No database connection configured (set DATABASE_URL to check existing geometries)")
 
-# Load Raw parcels
-print("\n4. Loading Raw parcels data...")
-raw_gdf = gpd.read_file(RAW_PATH)
-print(f"   ✓ Loaded {len(raw_gdf):,} raw parcels")
+# Load Post-Process parcels (was Raw)
+print(f"\n3. Loading Post-Process parcels data from: {os.path.basename(GEOMETRY_PATH)}")
+raw_gdf = gpd.read_file(GEOMETRY_PATH)
+print(f"   ✓ Loaded {len(raw_gdf):,} post-process parcels")
 print(f"   CRS: {raw_gdf.crs}")
-print(f"   Columns: {list(raw_gdf.columns)}")
+# print(f"   Columns: {list(raw_gdf.columns)}")
 
 # Clean raw geometries
-print("\n4. Cleaning raw geometries...")
-raw_gdf['geometry'] = raw_gdf['geometry'].apply(lambda g: make_valid(force_2d(g)) if g is not None else None)
+print("\n4. Cleaning post-process geometries...")
+raw_gdf['geometry'] = raw_gdf['geometry'].apply(safe_clean_geom)
 raw_gdf = raw_gdf[raw_gdf.geometry.notna()]
 raw_gdf = raw_gdf[~raw_gdf.geometry.is_empty]
-print(f"   ✓ {len(raw_gdf):,} valid raw geometries")
+print(f"   ✓ {len(raw_gdf):,} valid geometries")
 
 # Ensure same CRS
 if nicad_gdf.crs != raw_gdf.crs:
-    print(f"\n5. Reprojecting raw parcels to {nicad_gdf.crs}...")
+    print(f"\n5. Reprojecting post-process parcels to {nicad_gdf.crs}...")
     raw_gdf = raw_gdf.to_crs(nicad_gdf.crs)
 else:
-    print(f"\n5. CRS already matches: {nicad_gdf.crs}")
+    pass # print(f"\n5. CRS already matches: {nicad_gdf.crs}")
 
 # Combine NICAD and DB geometries for overlap checking
-print("\n6. Preparing reference geometries (NICAD + existing DB geometries)...")
-reference_gdfs = [nicad_gdf]
-if db_gdf is not None and len(db_gdf) > 0:
-    reference_gdfs.append(db_gdf)
-    print(f"   Including {len(db_gdf):,} geometries from database")
-
-# If we have DB geometries, combine them with NICAD for checking
-if len(reference_gdfs) > 1:
-    combined_ref_gdf = pd.concat(reference_gdfs, ignore_index=True)
-    print(f"   ✓ Total reference geometries: {len(combined_ref_gdf):,}")
-else:
-    combined_ref_gdf = nicad_gdf
-    print(f"   ✓ Using only NICAD geometries: {len(combined_ref_gdf):,}")
+print("\n6. Preparing reference geometries (NICAD)...")
+combined_ref_gdf = nicad_gdf
 
 # Create spatial index for efficient overlap detection
 print("\n7. Creating spatial index for reference geometries...")

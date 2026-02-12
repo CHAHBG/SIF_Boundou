@@ -4,9 +4,13 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const compression = require('compression');
+const { initScheduler } = require('./scheduler');
 
 const app = express();
 const port = process.env.PORT || 4000;
+
+// Initialize Scheduler
+initScheduler();
 
 // CORS Configuration - Permissive for debugging
 const corsOptions = {

@@ -14,8 +14,22 @@ function cleanValue(value) {
     return value;
 }
 
+const { findLatestNicadFile } = require('./find_latest_data');
+
 async function importNicad() {
-    const filepath = path.join(__dirname, '../data/Nicads/Parcelles_Nicad.xlsx');
+    // Usage: node import_nicad.js [nicad_file]
+    let filepath = process.argv[2];
+
+    if (!filepath) {
+        console.log("ℹ️  No file path provided, searching for latest Nicad file...");
+        filepath = findLatestNicadFile(); // Returns just the path string
+    }
+
+    if (!filepath) {
+        console.error("❌ Could not determine Nicad input file.");
+        process.exit(1);
+    }
+
     console.log(`\n📋 Importing NICAD data from: ${path.basename(filepath)}`);
 
     try {

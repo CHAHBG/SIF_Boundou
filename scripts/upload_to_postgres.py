@@ -35,10 +35,28 @@ print(f"   ✓ Loaded {len(gdf):,} parcels")
 print(f"   Columns: {list(gdf.columns)}")
 print(f"   CRS: {gdf.crs}")
 
-# Ensure geometry is valid and 2D
+# Ensure geometry# 2. Final validation
 print("\n2. Final geometry validation...")
 from shapely import force_2d, make_valid
-gdf['geometry'] = gdf['geometry'].apply(lambda g: make_valid(force_2d(g)) if g is not None else None)
+import shapely
+
+def safe_clean_geom(geom):
+    if geom is None:
+        return None
+    try:
+        # standard cleaning
+        g = force_2d(geom)
+        if not g.is_valid:
+            g = make_valid(g)
+        return g
+    except Exception as e:
+        # If standard cleaning fails, try buffer(0) or just return None
+        try:
+            return geom.buffer(0)
+        except:
+            return None
+
+gdf['geometry'] = gdf['geometry'].apply(safe_clean_geom)
 gdf = gdf[gdf.geometry.notna()]
 gdf = gdf[~gdf.geometry.is_empty]
 print(f"   ✓ {len(gdf):,} valid geometries")

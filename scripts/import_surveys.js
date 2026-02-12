@@ -17,42 +17,42 @@ function cleanValue(value) {
 // Convert Excel date serial number to PostgreSQL date
 function excelDateToPostgres(excelDate) {
   if (!excelDate) return null;
-  
+
   // If it's already a string date, return it
   if (typeof excelDate === 'string' && excelDate.includes('-')) return excelDate;
-  
+
   // If it's a number, convert from Excel serial date
   if (typeof excelDate === 'number') {
     const date = new Date((excelDate - 25569) * 86400 * 1000);
     return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
   }
-  
+
   return null;
 }
 
 async function importIndividualSurveys(filepath) {
   console.log(`\n📋 Reading individual surveys from: ${filepath}`);
-  
+
   try {
     const workbook = XLSX.readFile(filepath);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
-    
+
     console.log(`   Found ${data.length} individual survey records`);
-    
+
     let imported = 0;
     let skipped = 0;
-    
+
     for (const row of data) {
       try {
         const numParcel = cleanValue(row['Num_parcel']);
-        
+
         if (!numParcel) {
           skipped++;
           continue;
         }
-        
+
         await pool.query(`
           INSERT INTO individual_surveys (
             num_parcel, prenom, nom, sexe, date_naiss, lieu_naiss,
@@ -115,18 +115,18 @@ async function importIndividualSurveys(filepath) {
           cleanValue(row['Cause_conf']),
           cleanValue(row['Comnt_Conf'])
         ]);
-        
+
         imported++;
-        
+
       } catch (err) {
         console.error(`   ⚠️  Error importing ${row['Num_parcel']}: ${err.message}`);
         skipped++;
       }
     }
-    
+
     console.log(`   ✅ Imported ${imported} individual surveys, skipped ${skipped}`);
     return imported;
-    
+
   } catch (err) {
     console.error(`   ❌ Error reading file: ${err.message}`);
     return 0;
@@ -135,27 +135,27 @@ async function importIndividualSurveys(filepath) {
 
 async function importCollectiveSurveys(filepath) {
   console.log(`\n📋 Reading collective surveys from: ${filepath}`);
-  
+
   try {
     const workbook = XLSX.readFile(filepath);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
-    
+
     console.log(`   Found ${data.length} collective survey records`);
-    
+
     let imported = 0;
     let skipped = 0;
-    
+
     for (const row of data) {
       try {
         const numParcel = cleanValue(row['Num_parcel']);
-        
+
         if (!numParcel) {
           skipped++;
           continue;
         }
-        
+
         await pool.query(`
           INSERT INTO collective_surveys (
             num_parcel, cas_de_personne_001, nombre_affectata,
@@ -201,16 +201,16 @@ async function importCollectiveSurveys(filepath) {
           cleanValue(row['Cause_conf']),
           cleanValue(row['Comnt_Conf'])
         ]);
-        
+
         // Import beneficiaries (Prenom_001 to Prenom_027)
         for (let i = 1; i <= 27; i++) {
           const prenomKey = `Prenom_${String(i).padStart(3, '0')}`;
           const nomKey = `Nom_${String(i).padStart(3, '0')}`;
           const sexeKey = `Sexe_${String(i).padStart(3, '0')}`;
           const dateKey = `Date_naiss_${String(i).padStart(3, '0')}`;
-          
+
           const prenom = cleanValue(row[prenomKey]);
-          
+
           if (prenom) {
             await pool.query(`
               INSERT INTO beneficiaries (
@@ -227,41 +227,70 @@ async function importCollectiveSurveys(filepath) {
             ]);
           }
         }
-        
+
         imported++;
-        
+
       } catch (err) {
         console.error(`   ⚠️  Error importing ${row['Num_parcel']}: ${err.message}`);
         skipped++;
       }
     }
-    
+
     console.log(`   ✅ Imported ${imported} collective surveys, skipped ${skipped}`);
     return imported;
-    
+
   } catch (err) {
     console.error(`   ❌ Error reading file: ${err.message}`);
     return 0;
   }
 }
 
+
+const { findLatestSurveyFiles } = require('./find_latest_data');
+
 async function main() {
   console.log('='.repeat(60));
   console.log('🚀 Starting Survey Data Import');
   console.log('='.repeat(60));
-  
-  const individualFile = path.join(__dirname, '../data/Survey/Enquete_Foncière-Parcelles_Individuelles_17112025.xlsx');
-  const collectiveFile = path.join(__dirname, '../data/Survey/Enquete_Foncière-Parcelles_Collectives_17112025.xlsx');
-  
+
+  // Check for command line arguments
+  // Usage: node import_surveys.js [individual_file] [collective_file]
+  let individualFile = process.argv[2];
+  let collectiveFile = process.argv[3];
+
+  if (!individualFile || !collectiveFile) {
+    console.log("ℹ️  No file paths provided, searching for latest files...");
+    const latestFiles = findLatestSurveyFiles();
+
+    if (latestFiles) {
+      individualFile = individualFile || latestFiles.individual;
+      collectiveFile = collectiveFile || latestFiles.collective;
+    }
+  }
+
+  if (!individualFile || !collectiveFile) {
+    console.error("❌ Could not determine input files. Please provide them as arguments or ensure they exist in the standard locations.");
+    process.exit(1);
+  }
+
   let total = 0;
-  
-  total += await importIndividualSurveys(individualFile);
-  total += await importCollectiveSurveys(collectiveFile);
-  
+
+  if (individualFile) {
+    total += await importIndividualSurveys(individualFile);
+  } else {
+    console.log("⚠️  Skipping Individual Surveys (file not found)");
+  }
+
+  if (collectiveFile) {
+    total += await importCollectiveSurveys(collectiveFile);
+  } else {
+    console.log("⚠️  Skipping Collective Surveys (file not found)");
+  }
+
   console.log('\n' + '='.repeat(60));
   console.log(`✅ Import completed! Total records: ${total}`);
   console.log('='.repeat(60));
-  
+
   await pool.end();
 }
 
