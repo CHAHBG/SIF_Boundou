@@ -17,8 +17,9 @@ app.disable('x-powered-by');
 initScheduler();
 
 // --- Admin credentials from env ---
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD_HASH = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'admin', 10);
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
+const ADMIN_PASSWORD_RAW = process.env.ADMIN_PASSWORD || process.env.ADMIN_PASS || 'admin';
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync(ADMIN_PASSWORD_RAW, 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret_change_me';
 
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
