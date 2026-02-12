@@ -192,9 +192,7 @@ for idx, raw_parcel in raw_gdf.iterrows():
 
 raw_to_add = raw_gdf.loc[non_overlapping_raw]
 print(f"   ✓ Found {len(raw_to_add):,} raw parcels that don't overlap with reference geometries")
-print(f"   ✗ Excluded {overlapping_count:,} raw parcels that overlap with NICAD/DB geometries")
-
-# Harmonize columns before merging
+# Add required columns for frontend (MVT) compatibility
 print("\n9. Harmonizing columns...")
 
 # Prepare NICAD data with standardized columns
@@ -213,8 +211,15 @@ raw_standard['Village'] = None
 raw_standard['source_file'] = raw_standard.get('source_file', None)
 
 # Common columns to keep
-common_cols = ['num_parcel', 'nicad', 'source', 'geometry']
+common_cols = ['num_parcel', 'nicad', 'source', 'geometry', 'status', 'type']
 optional_cols = ['type_usa', 'type_usag', 'Village', 'source_file', 'superficie', 'x_centroid', 'y_centroid']
+
+# Set default values for new required columns
+nicad_standard['status'] = 'Pending'
+nicad_standard['type'] = 'Unknown'
+
+raw_standard['status'] = 'Pending'
+raw_standard['type'] = 'Unknown'
 
 # Build column list
 final_cols = common_cols.copy()
