@@ -4,6 +4,7 @@
     "watch:css": "tailwindcss -i ./src/input.css -o ./dist/output.css --watch"
   },
   "dependencies": {
+    "sif-boundou": "file:..",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
