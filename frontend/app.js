@@ -146,12 +146,15 @@ window.app = {
     },
 
     // ======================= LAYERS =======================
+    tileVersion: 0,  // cache-bust counter
+
     addLayers() {
         if (this.map.getSource('parcels-source')) return;
 
+        const tileUrl = `${this.BACKEND}/api/tiles/{z}/{x}/{y}` + (this.tileVersion ? `?_v=${this.tileVersion}` : '');
         this.map.addSource('parcels-source', {
             type: 'vector',
-            tiles: [`${this.BACKEND}/api/tiles/{z}/{x}/{y}`],
+            tiles: [tileUrl],
             minzoom: 0, maxzoom: 22, scheme: 'xyz', tileSize: 512, buffer: 64, tolerance: 3.5
         });
 
@@ -601,73 +604,157 @@ window.app = {
         if (!feature || !feature.geometry) { this.toast('Pas de géométrie à modifier', 'error'); return; }
 
         this.editingParcel = feature;
-        // Store original geometry for undo - need to transform from DB SRID to 4326
-        // The geometry from API is already in the DB's native SRID but ST_AsGeoJSON outputs it as-is
-        // We need to ensure it's in WGS84 (EPSG:4326) for editing
         this.originalGeometry = JSON.parse(JSON.stringify(feature.geometry));
 
-        // Close the detail panel
+        // Close the detail panel & hide stats bar
         this.closePanel();
-
-        // Hide stats bar
         document.getElementById('statsBar').style.display = 'none';
 
         // Show edit toolbar
         document.getElementById('editToolbar').classList.remove('hidden');
+        const saveBtn = document.getElementById('btnSaveGeometry');
+        if (saveBtn) saveBtn.disabled = false;
         lucide.createIcons();
 
-        // Initialize MapboxDraw
+        // Hide parcel layers so only Draw shows
+        ['parcels-3d', 'parcels-outline', 'parcels-highlight'].forEach(l => {
+            if (this.map.getLayer(l)) this.map.setLayoutProperty(l, 'visibility', 'none');
+        });
+
+        // Initialize MapboxDraw with QGIS-like green styling
         this.draw = new MapboxDraw({
             displayControlsDefault: false,
             controls: {},
             defaultMode: 'simple_select',
             styles: [
-                // Active vertex
-                { id: 'gl-draw-point-active', type: 'circle', filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'vertex']], paint: { 'circle-radius': 7, 'circle-color': '#fff', 'circle-stroke-color': '#2563eb', 'circle-stroke-width': 3 } },
-                // Midpoint
-                { id: 'gl-draw-point-midpoint', type: 'circle', filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'midpoint']], paint: { 'circle-radius': 4, 'circle-color': '#2563eb', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } },
-                // Polygon fill
-                { id: 'gl-draw-polygon-fill', type: 'fill', filter: ['all', ['==', '$type', 'Polygon']], paint: { 'fill-color': '#2563eb', 'fill-opacity': 0.15 } },
-                // Polygon stroke
-                { id: 'gl-draw-polygon-stroke-active', type: 'line', filter: ['all', ['==', '$type', 'Polygon']], paint: { 'line-color': '#2563eb', 'line-width': 3, 'line-dasharray': [2, 1] } },
-                // Line
-                { id: 'gl-draw-line', type: 'line', filter: ['all', ['==', '$type', 'LineString']], paint: { 'line-color': '#2563eb', 'line-width': 3 } }
+                // ---- Polygon fill (semitransparent green) ----
+                {
+                    id: 'gl-draw-polygon-fill-active', type: 'fill',
+                    filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+                    paint: { 'fill-color': '#22c55e', 'fill-opacity': 0.12, 'fill-outline-color': '#22c55e' }
+                },
+                {
+                    id: 'gl-draw-polygon-fill-static', type: 'fill',
+                    filter: ['all', ['==', '$type', 'Polygon'], ['==', 'mode', 'static']],
+                    paint: { 'fill-color': '#16a34a', 'fill-opacity': 0.08, 'fill-outline-color': '#16a34a' }
+                },
+                // ---- Polygon outline (solid green) ----
+                {
+                    id: 'gl-draw-polygon-stroke-active', type: 'line',
+                    filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#16a34a', 'line-width': 2.5 }
+                },
+                {
+                    id: 'gl-draw-polygon-stroke-static', type: 'line',
+                    filter: ['all', ['==', '$type', 'Polygon'], ['==', 'mode', 'static']],
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#16a34a', 'line-width': 2, 'line-dasharray': [3, 2] }
+                },
+                // ---- Line (for LineString edits) ----
+                {
+                    id: 'gl-draw-line', type: 'line',
+                    filter: ['all', ['==', '$type', 'LineString'], ['!=', 'mode', 'static']],
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#16a34a', 'line-width': 2.5 }
+                },
+                // ---- Vertices (green squares — QGIS style accrochages) ----
+                {
+                    id: 'gl-draw-point-vertex-active', type: 'circle',
+                    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
+                    paint: {
+                        'circle-radius': 6,
+                        'circle-color': '#22c55e',
+                        'circle-stroke-color': '#fff',
+                        'circle-stroke-width': 2.5
+                    }
+                },
+                // ---- Selected vertex (brighter, larger) ----
+                {
+                    id: 'gl-draw-point-vertex-selected', type: 'circle',
+                    filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['==', 'active', 'true']],
+                    paint: {
+                        'circle-radius': 8,
+                        'circle-color': '#4ade80',
+                        'circle-stroke-color': '#166534',
+                        'circle-stroke-width': 3
+                    }
+                },
+                // ---- Midpoints (small green dots — add-vertex handles) ----
+                {
+                    id: 'gl-draw-point-midpoint', type: 'circle',
+                    filter: ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
+                    paint: {
+                        'circle-radius': 4,
+                        'circle-color': '#86efac',
+                        'circle-stroke-color': '#16a34a',
+                        'circle-stroke-width': 1.5
+                    }
+                },
+                // ---- Feature point (for point features) ----
+                {
+                    id: 'gl-draw-point', type: 'circle',
+                    filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'feature'], ['!=', 'mode', 'static']],
+                    paint: {
+                        'circle-radius': 5,
+                        'circle-color': '#22c55e',
+                        'circle-stroke-color': '#fff',
+                        'circle-stroke-width': 2
+                    }
+                }
             ]
         });
 
         this.map.addControl(this.draw);
 
-        // Add the feature to draw
+        // Add the parcel geometry to draw
         const drawFeature = {
             type: 'Feature',
             geometry: JSON.parse(JSON.stringify(feature.geometry)),
-            properties: { parcelId: feature.properties.id }
+            properties: {}
         };
         const ids = this.draw.add(drawFeature);
+        this._drawFeatureId = (ids && ids.length > 0) ? ids[0] : null;
 
-        // Select it for direct editing
-        if (ids && ids.length > 0) {
-            this.draw.changeMode('direct_select', { featureId: ids[0] });
+        // Enter direct_select mode to show vertices immediately
+        if (this._drawFeatureId) {
+            setTimeout(() => {
+                try {
+                    this.draw.changeMode('direct_select', { featureId: this._drawFeatureId });
+                } catch (e) { console.warn('Could not enter direct_select:', e); }
+            }, 100);
         }
 
-        // Fly to the feature
+        // Fly to the feature at editing zoom
         if (feature.properties.centroid && feature.properties.centroid.coordinates) {
             const c = feature.properties.centroid.coordinates;
-            this.map.flyTo({ center: c, zoom: 18, pitch: 0, duration: 800 });
+            this.map.flyTo({ center: c, zoom: 18, pitch: 0, bearing: 0, duration: 800 });
         }
 
         // Setup save/cancel handlers
         document.getElementById('btnSaveGeometry').onclick = () => this.saveGeometryEdit();
         document.getElementById('btnCancelEdit').onclick = () => this.cancelGeometryEdit();
 
-        this.toast('Déplacez les sommets pour modifier la géométrie', 'info');
+        this.toast('Mode édition activé — Déplacez les sommets verts pour corriger la géométrie', 'info');
     },
 
     async saveGeometryEdit() {
-        if (!this.draw || !this.editingParcel) return;
+        if (!this.draw || !this.editingParcel) {
+            console.warn('saveGeometryEdit: no draw or editingParcel');
+            return;
+        }
 
-        const allFeatures = this.draw.getAll();
-        if (!allFeatures || allFeatures.features.length === 0) {
+        // Get all features from draw
+        let allFeatures;
+        try {
+            allFeatures = this.draw.getAll();
+        } catch (e) {
+            console.error('draw.getAll() failed:', e);
+            this.toast('Erreur lors de la récupération de la géométrie', 'error');
+            return;
+        }
+
+        if (!allFeatures || !allFeatures.features || allFeatures.features.length === 0) {
             this.toast('Aucune géométrie à sauvegarder', 'error');
             return;
         }
@@ -675,8 +762,18 @@ window.app = {
         const editedGeometry = allFeatures.features[0].geometry;
         const parcelId = this.editingParcel.properties.id;
 
+        if (!editedGeometry || !editedGeometry.coordinates || editedGeometry.coordinates.length === 0) {
+            this.toast('Géométrie invalide', 'error');
+            return;
+        }
+
+        // Disable save button to prevent double-click
+        const saveBtn = document.getElementById('btnSaveGeometry');
+        if (saveBtn) saveBtn.disabled = true;
+
         try {
             this.toast('Sauvegarde en cours...', 'info');
+            console.log('Saving geometry for parcel', parcelId, '- type:', editedGeometry.type, '- coords length:', editedGeometry.coordinates.length);
 
             const response = await fetch(`${this.BACKEND}/api/parcels/${parcelId}/geometry`, {
                 method: 'PUT',
@@ -687,7 +784,12 @@ window.app = {
                 body: JSON.stringify({ geometry: editedGeometry })
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                throw new Error(`Réponse serveur invalide (status ${response.status})`);
+            }
 
             if (!response.ok) {
                 if (response.status === 401) {
@@ -698,50 +800,60 @@ window.app = {
                     this.cancelGeometryEdit();
                     return;
                 }
-                throw new Error(data.error || 'Erreur serveur');
+                throw new Error(data.error || `Erreur serveur (${response.status})`);
             }
 
+            console.log('Geometry saved successfully:', data);
             this.toast('Géométrie sauvegardée avec succès !', 'success');
+
+            // Clean up draw mode
             this.cancelGeometryEdit();
 
-            // Reload tiles by removing and re-adding the source
-            setTimeout(() => {
-                if (this.map.getSource('parcels-source')) {
-                    // Force tile refresh
-                    const source = this.map.getSource('parcels-source');
-                    const tiles = source.tiles || [`${this.BACKEND}/api/tiles/{z}/{x}/{y}`];
-                    // Add cache-busting param
-                    const newTiles = tiles.map(t => {
-                        const sep = t.includes('?') ? '&' : '?';
-                        return `${t.split('?')[0]}${sep}_t=${Date.now()}`;
-                    });
-
-                    // Remove layers and source, then re-add
-                    ['parcels-highlight', 'parcels-outline', 'parcels-3d'].forEach(l => {
-                        if (this.map.getLayer(l)) this.map.removeLayer(l);
-                    });
-                    if (this.map.getSource('parcels-source')) this.map.removeSource('parcels-source');
-                    this.addLayers();
-                    this.updateLayers();
-                }
-            }, 500);
+            // Force tile reload: bump version, remove layers/source, re-add
+            this.tileVersion = Date.now();
+            this.reloadTiles();
 
         } catch (err) {
             console.error('Save geometry error:', err);
             this.toast(`Erreur: ${err.message}`, 'error');
+            if (saveBtn) saveBtn.disabled = false;
         }
     },
 
+    reloadTiles() {
+        // Remove existing layers and source
+        ['parcels-highlight', 'parcels-outline', 'parcels-3d'].forEach(l => {
+            if (this.map.getLayer(l)) this.map.removeLayer(l);
+        });
+        if (this.map.getSource('parcels-source')) this.map.removeSource('parcels-source');
+
+        // Re-add with cache-busted tile URL
+        this.addLayers();
+        this.updateLayers();
+        // Make sure layers are visible
+        ['parcels-3d', 'parcels-outline'].forEach(l => {
+            if (this.map.getLayer(l)) this.map.setLayoutProperty(l, 'visibility', 'visible');
+        });
+    },
+
     cancelGeometryEdit() {
+        // Remove draw control
         if (this.draw) {
-            this.map.removeControl(this.draw);
+            try { this.map.removeControl(this.draw); } catch (e) { console.warn('removeControl error:', e); }
             this.draw = null;
         }
+        this._drawFeatureId = null;
         this.editingParcel = null;
         this.originalGeometry = null;
 
+        // Restore UI
         document.getElementById('editToolbar').classList.add('hidden');
         document.getElementById('statsBar').style.display = '';
+
+        // Show parcel layers again
+        ['parcels-3d', 'parcels-outline'].forEach(l => {
+            if (this.map.getLayer(l)) this.map.setLayoutProperty(l, 'visibility', 'visible');
+        });
     },
 
     // ======================= AUTH =======================

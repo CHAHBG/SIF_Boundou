@@ -357,9 +357,9 @@ app.put('/api/parcels/:id/geometry', authMiddleware, async (req, res) => {
     const result = await pool.query(
       `UPDATE parcels 
        SET geometry = ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($2), 4326), 32628)
-       WHERE id = $1 OR num_parcel = $1::text
+       WHERE id = $1
        RETURNING id, num_parcel,
-         ST_AsGeoJSON(geometry)::json AS geometry,
+         ST_AsGeoJSON(ST_Transform(geometry, 4326))::json AS geometry,
          json_build_object(
            'type', 'Point',
            'coordinates', json_build_array(
@@ -367,7 +367,7 @@ app.put('/api/parcels/:id/geometry', authMiddleware, async (req, res) => {
              ST_Y(ST_Transform(ST_Centroid(geometry), 4326))
            )
          ) AS centroid`,
-      [id, geojsonStr]
+      [parseInt(id, 10), geojsonStr]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Parcelle introuvable' });

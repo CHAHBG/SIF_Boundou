@@ -11,8 +11,10 @@
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- MapboxDraw requires mapboxgl global — alias MapLibre -->
+    <script>window.mapboxgl = maplibregl;</script>
 
-    <!-- MapLibre Draw for geometry editing -->
+    <!-- MapboxDraw for geometry editing -->
     <script src="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js"></script>
     <link href="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css" rel="stylesheet" />
 
@@ -206,8 +208,13 @@
         .edit-toolbar button { padding:6px 14px; border-radius:8px; font-size:.78rem; font-weight:600; border:none; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all .15s; }
         .edit-toolbar .btn-save { background:var(--success); color:#fff; }
         .edit-toolbar .btn-save:hover { background:#059669; }
+        .edit-toolbar .btn-save:disabled { opacity:.5; cursor:not-allowed; }
         .edit-toolbar .btn-cancel { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
         .edit-toolbar .btn-cancel:hover { background:rgba(255,255,255,.2); }
+
+        /* QGIS-like Draw overrides */
+        .mapbox-gl-draw_ctrl-draw-btn { display:none !important; }
+        .mapbox-gl-draw_point { cursor:crosshair !important; }
 
         /* ---- MODALS ---- */
         .modal-overlay { position:fixed; inset:0; z-index:100; background:rgba(15,23,42,.6); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; transition:opacity .2s; }
